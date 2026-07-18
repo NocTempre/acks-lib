@@ -110,6 +110,20 @@ export const PROFICIENCY_DOMAINS = {
   fightingStyle: { label: "Fighting Style" },
 };
 
+/**
+ * Breadth of a weapon/armor proficiency grant (ACKS custom-class selection
+ * tiers). A class import parameterizes the grant — e.g. "broad weapon
+ * proficiency (missile + small melee)" — and the abilities rules define what
+ * each tier permits. `group` holds the specific selection; `unrestricted`
+ * grants all and carries no selection.
+ */
+export const PROFICIENCY_BREADTH = {
+  unrestricted: { label: "Unrestricted" },
+  broad: { label: "Broad" },
+  narrow: { label: "Narrow" },
+  restricted: { label: "Restricted" },
+};
+
 /** The typed effect primitives an ability's `effects[]` may hold. */
 export const EFFECT_TYPES = {
   modifier: { label: "Modifier" }, // flat/level-scaling bonus OR penalty to a target

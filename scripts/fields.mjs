@@ -18,6 +18,7 @@ import {
   NATURAL_WEAPONS,
   EFFECT_TYPES,
   PROFICIENCY_DOMAINS,
+  PROFICIENCY_BREADTH,
   PROGRESSION_CLASSES,
   PROGRESSION_LEVELS,
   SPELL_LIKE_FREQ,
@@ -91,7 +92,8 @@ export function effectField() {
     atLevel: choice(PROGRESSION_LEVELS),
     // proficiencyGrant (weapon/armor/fighting-style proficiency)
     domain: choice(PROFICIENCY_DOMAINS),
-    group: str(), // weapon group / armor weight / fighting-style name
+    breadth: choice(PROFICIENCY_BREADTH), // unrestricted / broad / narrow / restricted
+    group: str(), // weapon group / armor weight / fighting-style name (empty when unrestricted)
     // limitation / drawback (a restriction on ANY ability; numeric penalties reuse target+value)
     restriction: str(), // prohibition or behavioral drawback ("may not use shields")
     // immunity / resistance / susceptibility
