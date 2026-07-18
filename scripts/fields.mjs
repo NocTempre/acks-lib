@@ -88,6 +88,7 @@ export function effectField() {
     // modifier / throw
     target: str(), // a MODIFIER_TARGETS key, or a save/proficiency name
     value: levelValueField(),
+    forWhat: str(), // the activity a throw/modifier applies to ("Dungeonbashing")
     roll: str(), // e.g. "1d20"
     rollType: choice(ROLL_TYPES),
     // progressionAs
