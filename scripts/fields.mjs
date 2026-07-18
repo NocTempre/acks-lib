@@ -104,10 +104,12 @@ export function effectField() {
     damage: choiceSet(DAMAGE_TYPES),
     effects: choiceSet(EFFECT_KEYS),
     conditions: choiceSet(CONDITION_KEYS),
-    // sense / movement
+    // sense / movement — NOTE `movementMode` is deliberately not called `mode`:
+    // `mode` below is the combination mode (add|replace|set), and two fields of
+    // the same name in one schema silently lose one of them.
     sense: choice(SENSE_TYPES),
     vision: choice(VISION_TYPES),
-    mode: choice(MOVEMENT_TYPES),
+    movementMode: choice(MOVEMENT_TYPES),
     range: num({ integer: true }),
     // naturalAttack
     routine: str(),
