@@ -309,6 +309,85 @@ export const ROLL_TYPES = {
   below: { label: "≤" },
 };
 
+/* ---------------------------------------------------------------- */
+/*  Capabilities — the gate pattern                                  */
+/* ---------------------------------------------------------------- */
+
+/**
+ * A CAPABILITY is what an ability lets you do, named independently of which
+ * ability grants it. Abilities declare what they `provide`; prerequisites,
+ * gates and stacking rules are written against the capability, not against one
+ * specific entry.
+ *
+ * This is what makes gates survive the books' habit of printing the same
+ * capability several ways. "Searching" is a thief skill, a proficiency, and the
+ * thing several class powers hand out; an alias prints it under another name
+ * again. A gate written as `def.prof.searching` misses every one of those. A
+ * gate written as `kw:searching` catches them all, because each of them
+ * provides that capability.
+ *
+ * It also gives aliases and non-stacking ONE mechanism instead of two: two
+ * abilities that provide the same capability are the same capability twice, so
+ * they do not stack — that falls out of the data rather than being asserted
+ * per pair.
+ *
+ * Tokens: `def.<class>.<slug>` names one exact ability; `kw:<slug>` names a
+ * capability. Anywhere a ref is accepted (`requires`, `ifHas`, `stacksWith`,
+ * `notStacksWith`), either form works.
+ */
+export const CAPABILITY_PREFIX = "kw:";
+
+export const isCapabilityToken = (token) => String(token ?? "").startsWith(CAPABILITY_PREFIX);
+
+/** "def.prof.sensingEvil" → "kw:sensingevil". Case- and separator-folded. */
+export const capabilityForId = (id) =>
+  CAPABILITY_PREFIX +
+  String(id ?? "")
+    .split(".")
+    .slice(2)
+    .join("")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+/**
+ * Does a character holding `abilities` satisfy `token`?
+ *
+ * `abilities` is a list of `{ id, provides }`. A definition-id token needs that
+ * exact ability; a `kw:` token is satisfied by ANY ability providing it — and
+ * an ability always implicitly provides its own id's capability, so a gate can
+ * be written against a capability before anything has been tagged.
+ */
+export function satisfies(abilities, token) {
+  if (!token) return true;
+  const list = abilities ?? [];
+  if (!isCapabilityToken(token)) return list.some((a) => a?.id === token);
+  const want = token.toLowerCase();
+  return list.some(
+    (a) => capabilityForId(a?.id) === want || (a?.provides ?? []).some((p) => String(p).toLowerCase() === want),
+  );
+}
+
+/** Every token in `tokens` satisfied (an ability's `requires` / `ifHas`). */
+export const satisfiesAll = (abilities, tokens) => (tokens ?? []).every((t) => satisfies(abilities, t));
+
+/**
+ * Group abilities that provide the same capability. Each group beyond size 1 is
+ * the same capability held more than once — which does not stack. Returned as
+ * `capability -> [ability ids]`, only for capabilities held more than once, so
+ * a caller can warn or suppress without having to diff anything itself.
+ */
+export function nonStackingGroups(abilities) {
+  const by = new Map();
+  for (const a of abilities ?? []) {
+    const caps = new Set([capabilityForId(a?.id), ...(a?.provides ?? []).map((p) => String(p).toLowerCase())]);
+    for (const c of caps) {
+      if (!c || c === CAPABILITY_PREFIX) continue;
+      (by.get(c) ?? by.set(c, []).get(c)).push(a.id);
+    }
+  }
+  return Object.fromEntries([...by].filter(([, ids]) => ids.length > 1));
+}
+
 /** Which of a reroll's results is kept. */
 export const REROLL_KEEP = {
   better: { label: "Keep the Better" },

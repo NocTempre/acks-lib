@@ -72,6 +72,38 @@ the ability confers. The pointer ships; the creature's text does not. `actorUuid
 is the bucket the actor lands in, empty until the citing book is available or a
 GM drops one in, so a bookless seat still gets the slot and can fill it later.
 
+### Capabilities — the gate pattern
+
+A **capability** is what an ability lets you do, named independently of which
+ability grants it. Abilities declare what they `provide`; prerequisites, gates
+and stacking are written against the capability.
+
+| token | meaning |
+|---|---|
+| `def.<class>.<slug>` | one exact ability |
+| `kw:<slug>` | a capability — any ability providing it |
+
+Either form works anywhere a ref is accepted (`requires`, `ifHas`,
+`stacksWith`, `notStacksWith`).
+
+```js
+satisfies(abilities, token)       // abilities: [{ id, provides }]
+satisfiesAll(abilities, tokens)
+capabilityForId("def.prof.sensingEvil")   // "kw:sensingevil"
+nonStackingGroups(abilities)      // { capability: [ids] } held more than once
+```
+
+This exists because the books print one capability several ways. *Searching* is
+a thief skill, a proficiency, and what several class powers hand out — and an
+alias prints it under another name again. A gate naming `def.prof.searching`
+misses every other route to it; `kw:searching` catches them all. An ability
+always implicitly provides its own id's capability, so a gate resolves before
+anything has been tagged.
+
+It also collapses aliases and non-stacking into one mechanism: two abilities
+providing the same capability *are* that capability twice, so they do not stack.
+That falls out of the data instead of being asserted per pair.
+
 ### Conversion status
 
 `CONVERSION_STATUS[status]` → `{ label, severity, icon, tip }`, and

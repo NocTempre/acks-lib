@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0
+
+- **Capabilities — the gate pattern.** An ability can now declare what it lets
+  you *do*, named independently of the entry granting it (`kw:` tokens), and
+  prerequisites can be written against the capability instead of one specific
+  ability. This is what makes a gate survive the books printing the same
+  capability several ways: "Searching" is a thief skill, a proficiency, and the
+  thing several class powers hand out, and an alias prints it under another name
+  again. A gate naming one id misses the rest; a capability gate catches them
+  all. `satisfies()` / `satisfiesAll()` resolve them, and an ability always
+  implicitly provides its own id's capability, so gates work before anything is
+  tagged.
+- **Non-stacking falls out of the same data.** Two abilities providing one
+  capability are that capability twice; `nonStackingGroups()` reports them
+  rather than requiring a per-pair assertion.
+
 ## 0.2.0
 
 - **Renames are marked too.** `renamed` is no longer silent: every conversion

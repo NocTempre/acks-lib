@@ -109,6 +109,33 @@ t("rerollTotal: times counts EXTRA rolls and defaults to one", () => {
   assert.equal(vocab.rerollTotal({ times: -5 }), 1);
 });
 
+t("capabilities: a kw: gate catches every ability providing it", () => {
+  const { satisfies, satisfiesAll, capabilityForId } = vocab;
+  assert.equal(capabilityForId("def.prof.sensingEvil"), "kw:sensingevil");
+  // The thief SKILL, not the proficiency — a gate naming the proficiency id
+  // would miss it, a capability gate does not.
+  const held = [{ id: "def.skill.searching", provides: [] }, { id: "def.power.alertness", provides: [] }];
+  assert.equal(satisfies(held, "kw:searching"), true, "own id implies its capability");
+  assert.equal(satisfies(held, "def.prof.searching"), false, "exact id is still exact");
+  assert.equal(satisfies(held, "def.skill.searching"), true);
+  // An alias declares the capability it shares with its target.
+  const viaAlias = [{ id: "def.power.discernevil", provides: ["kw:sensingevil"] }];
+  assert.equal(satisfies(viaAlias, "kw:sensingevil"), true);
+  assert.equal(satisfiesAll(held, ["kw:searching", "kw:alertness"]), true);
+  assert.equal(satisfiesAll(held, ["kw:searching", "kw:nosuch"]), false);
+  assert.equal(satisfies(held, ""), true, "no gate is satisfied trivially");
+});
+
+t("capabilities: same capability twice does not stack", () => {
+  const groups = vocab.nonStackingGroups([
+    { id: "def.power.ageless", provides: ["kw:longeval"] },
+    { id: "def.power.longeval", provides: [] },
+    { id: "def.prof.alertness", provides: [] },
+  ]);
+  assert.deepEqual(groups, { "kw:longeval": ["def.power.ageless", "def.power.longeval"] });
+  assert.deepEqual(vocab.nonStackingGroups([{ id: "def.prof.alertness", provides: [] }]), {}, "one of a kind stacks fine");
+});
+
 t("reroll + companion primitives are in the effect vocabulary", () => {
   for (const k of ["reroll", "companion"]) assert.ok(vocab.EFFECT_TYPES[k], `EFFECT_TYPES.${k}`);
   assert.deepEqual(Object.keys(vocab.REROLL_KEEP), ["better", "worse", "latest"]);
