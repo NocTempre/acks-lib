@@ -70,4 +70,49 @@ t("resolveLevelValue: nullish is null", () => {
   assert.equal(R(undefined, 3), null);
 });
 
+t("resolveLevelValue: conditional keys on a scale, not level", () => {
+  // "counts as 1 power at Arcane Value 1-2, 2 at Arcane Value 3-4"
+  const lv = { on: "arcaneValue", breakpoints: [{ atLevel: 1, value: 1 }, { atLevel: 3, value: 2 }] };
+  assert.equal(R(lv, 14, { arcaneValue: 1 }), 1);
+  assert.equal(R(lv, 1, { arcaneValue: 4 }), 2);
+  assert.equal(R(lv, 9), null); // scale not supplied — caller's to provide
+  assert.equal(R(lv, 9, { arcaneValue: 0 }), null); // below the first rung
+});
+
+t("conversionTip fills {name}; renamed is marked, not silent", () => {
+  assert.equal(vocab.conversionTip("renamed", "Detect Traps"), "Detect Traps has been renamed for ACKS II.");
+  assert.equal(vocab.conversionTip("renamed"), "This content has been renamed for ACKS II.");
+  assert.ok(vocab.CONVERSION_STATUS.renamed.icon, "renamed carries an icon");
+  for (const s of Object.values(vocab.CONVERSION_STATUS)) {
+    assert.ok(s.icon && s.severity && s.tip, "every status has icon+severity+tip");
+  }
+  assert.equal(vocab.conversionTip("nonesuch", "X"), "");
+});
+
+t("resolveReroll: better/worse follow the throw's direction", () => {
+  const RR = vocab.resolveReroll;
+  // roll-high (attack / proficiency throw): better is the maximum
+  assert.equal(RR([7, 15], "better", "above"), 15);
+  assert.equal(RR([7, 15], "worse", "above"), 7);
+  // roll-low (measured against a ceiling): better is the minimum
+  assert.equal(RR([7, 15], "better", "below"), 7);
+  assert.equal(RR([7, 15], "worse", "below"), 15);
+  assert.equal(RR([7, 15, 3], "latest"), 3); // no choice — the reroll stands
+  assert.equal(RR([], "better"), null);
+  assert.equal(RR([4, NaN, 12], "better", "above"), 12); // junk ignored
+});
+
+t("rerollTotal: times counts EXTRA rolls and defaults to one", () => {
+  assert.equal(vocab.rerollTotal({}), 2); // "roll twice" needs no field
+  assert.equal(vocab.rerollTotal({ times: 2 }), 3);
+  assert.equal(vocab.rerollTotal({ times: 0 }), 1);
+  assert.equal(vocab.rerollTotal({ times: -5 }), 1);
+});
+
+t("reroll + companion primitives are in the effect vocabulary", () => {
+  for (const k of ["reroll", "companion"]) assert.ok(vocab.EFFECT_TYPES[k], `EFFECT_TYPES.${k}`);
+  assert.deepEqual(Object.keys(vocab.REROLL_KEEP), ["better", "worse", "latest"]);
+  assert.ok(vocab.VALUE_SCALES.arcaneValue, "VALUE_SCALES.arcaneValue (magic TODO)");
+});
+
 console.log(`\n${n} tests passed`);

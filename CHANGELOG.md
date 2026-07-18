@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0
+
+- **Renames are marked too.** `renamed` is no longer silent: every conversion
+  status now carries an `icon` and a `severity`, and `tip` is a template —
+  `conversionTip(status, name)` fills `{name}`, so a renamed entry reads
+  "*Detect Traps* has been renamed for ACKS II."
+- **Reroll primitive** — `{type:"reroll", keep, times}` with `resolveReroll()`
+  and `rerollTotal()`. `times` counts the *extra* rolls (so "roll twice" needs
+  no field set), and "better" follows the throw's own direction: the maximum on
+  a roll-high throw, the minimum on a roll-low one.
+- **Companion primitive** — `{type:"companion", ref, actorUuid, amount}`. `ref`
+  points at the monster entry; `actorUuid` is a bucket that stays empty until
+  the citing book is available or a GM drops an actor in, so a bookless seat
+  still gets the slot.
+- **Conditional values** — a LevelValue may key its breakpoint ladder on a
+  `VALUE_SCALES` scale instead of class level; `resolveLevelValue` takes a third
+  `scales` argument.
+- Built ahead of the magic work and deliberately **not consumed yet**:
+  `VALUE_SCALES.arcaneValue` / `.divineValue` (conditional power cost) and
+  `spellRefField()` (a placeholder pointing at the core system's existing spell
+  item). Both carry TODOs; see *Not yet consumed* in `docs/API.md`.
+
 ## 0.1.0
 
 - Initial scaffold from acks-module-template.

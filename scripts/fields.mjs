@@ -25,6 +25,8 @@ import {
   SPELL_LIKE_FREQ,
   RESOURCE_KINDS,
   ROLL_TYPES,
+  REROLL_KEEP,
+  VALUE_SCALES,
 } from "./vocab.mjs";
 
 const F = () => foundry.data.fields;
@@ -45,15 +47,42 @@ export function levelValueField() {
   const { SchemaField, ArrayField } = F();
   return new SchemaField({
     kind: choice(
-      { flat: { label: "Flat" }, perLevel: { label: "Per Level" }, breakpoints: { label: "Breakpoints" }, progression: { label: "Progression" } },
+      {
+        flat: { label: "Flat" },
+        perLevel: { label: "Per Level" },
+        breakpoints: { label: "Breakpoints" },
+        progression: { label: "Progression" },
+        conditional: { label: "Conditional on a Scale" },
+      },
       { initial: "flat" },
     ),
     flat: num(),
     base: num(),
     per: num(),
+    // Shared by `breakpoints` and `conditional`: for the latter `atLevel` reads
+    // "at this value of `on`" rather than at this class level.
     breakpoints: new ArrayField(new SchemaField({ atLevel: num({ integer: true }), value: num() })),
+    on: choice(VALUE_SCALES), // conditional: which scale the ladder is keyed on
     as: choice(PROGRESSION_CLASSES),
     atLevel: choice(PROGRESSION_LEVELS),
+  });
+}
+
+/**
+ * A pointer to a spell.
+ *
+ * TODO(magic): this is a PLACEHOLDER. It points at the core system's existing
+ * spell item by uuid and carries the printed name as a fallback, which is
+ * enough to link and display but models nothing about the spell itself. When
+ * the magic work lands, this becomes a real spell primitive (school, range,
+ * duration, save, reversibility, ritual/formula cost) and the `spell` string on
+ * `effectField` retires in favour of it. Nothing consumes this yet — it exists
+ * so the shape is agreed before anything depends on it.
+ */
+export function spellRefField() {
+  return new (F().SchemaField)({
+    uuid: str(), // core spell Item uuid, once one exists in the world
+    name: str(), // printed name — the fallback when no item is linked
   });
 }
 
@@ -142,6 +171,20 @@ export function effectField() {
     stacksWith: refList(),
     notStacksWith: refList(),
     choose: num({ integer: true }),
+    /* --- reroll: "roll twice and keep the better" ---
+     * `times` is the number of EXTRA rolls (default 1). `keep` decides which
+     * result stands; `resolveReroll` reads `rollType` above so "better" means
+     * higher on a roll-high throw and lower on a roll-low one. Reuses
+     * `target`/`forWhat`/`condition` to say WHAT is rerolled and when. */
+    keep: choice(REROLL_KEEP),
+    times: num({ integer: true }),
+    /* --- companion: a creature the ability confers ---
+     * `ref` is the monster entry id (the recipe knows which — that pointer is
+     * not the book's text and ships safely). `actorUuid` is the loaded bucket:
+     * empty until the citing book is available or a GM drops an actor in, so a
+     * bookless seat still gets the slot and can fill it later. `amount` is how
+     * many the ability confers. */
+    actorUuid: str(),
     // shared
     condition: str(), // free-text situational qualifier (when no structured form fits)
     note: str(),

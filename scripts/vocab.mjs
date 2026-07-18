@@ -136,6 +136,8 @@ export const EFFECT_TYPES = {
   requires: { label: "Requires" }, // prerequisite ability/abilities
   grants: { label: "Grants" }, // confers other abilities (optionally choose N)
   modifies: { label: "Modifies" }, // changes another ability's value/throw
+  reroll: { label: "Reroll" }, // roll twice, keep the better/worse (resolvable — see resolveReroll)
+  companion: { label: "Companion" }, // a creature the ability confers; links to a monster entry
   immunity: { label: "Immunity" },
   resistance: { label: "Resistance" },
   susceptibility: { label: "Susceptibility" },
@@ -257,30 +259,105 @@ export const EFFECT_MODES = {
 };
 
 /**
- * How a converted / retired thing is surfaced. A RENAMED thing just resolves —
- * it needs no marker. Content the books removed deliberately is a CAUTION;
- * content merely omitted from ACKS II (and which may return) is INFO, since it
- * still works, it just was not designed for this edition.
+ * How a converted / retired thing is surfaced. All three are MARKED — a rename
+ * resolves silently as far as lookup goes, but the reader still deserves to
+ * know the name on the page in front of them is not the name in the book they
+ * are holding. Content the books removed deliberately is a CAUTION; content
+ * merely omitted from ACKS II (and which may return) is INFO, since it still
+ * works, it just was not designed for this edition.
+ *
+ * `tip` is a TEMPLATE: `{name}` interpolates the source name via
+ * `conversionTip()`. Consumers read icon/severity/tip from here rather than
+ * inventing their own wording, so the family says the same thing everywhere.
  */
 export const CONVERSION_STATUS = {
-  renamed: { label: "Renamed", severity: "none", tip: "" },
+  renamed: {
+    label: "Renamed",
+    severity: "note",
+    icon: "fa-solid fa-tag",
+    tip: "{name} has been renamed for ACKS II.",
+  },
   deleted: {
     label: "Deleted",
     severity: "caution",
+    icon: "fa-solid fa-triangle-exclamation",
     tip: "This content is not advised for a typical ACKS II campaign.",
   },
   absent: {
     label: "Absent",
     severity: "info",
+    icon: "fa-solid fa-circle-info",
     tip: "This content has not been designed for ACKS II, use with care.",
   },
 };
+
+/**
+ * The tooltip for a conversion status, with `{name}` filled in. `name` is the
+ * PRE-conversion name (what the older source called it) — that is the thing the
+ * reader is trying to reconcile. Returns "" for an unknown status.
+ */
+export function conversionTip(status, name = "") {
+  const tip = CONVERSION_STATUS[status]?.tip;
+  if (!tip) return "";
+  return tip.replace(/\{name\}/g, name || "This content");
+}
 
 /** Roll comparison (mirror core `CONFIG.ACKS.roll_type`). */
 export const ROLL_TYPES = {
   result: { label: "=" },
   above: { label: "≥" },
   below: { label: "≤" },
+};
+
+/** Which of a reroll's results is kept. */
+export const REROLL_KEEP = {
+  better: { label: "Keep the Better" },
+  worse: { label: "Keep the Worse" },
+  latest: { label: "Keep the New Roll" }, // no choice — the reroll simply stands
+};
+
+/**
+ * Resolve a reroll: given every result rolled, return the one that stands.
+ *
+ * "Better" is not "higher" — ACKS throws run both directions. An attack or
+ * proficiency throw is roll-HIGH (`above`), so better is the maximum; a roll
+ * measured against a ceiling (`below`) is roll-LOW, so better is the minimum.
+ * Passing the effect's own `rollType` keeps the polarity honest instead of
+ * hardcoding one direction and being wrong half the time.
+ *
+ * Returns null on an empty result set. Pure and Foundry-free.
+ */
+export function resolveReroll(results, keep = "better", rollType = "above") {
+  const vals = (results ?? []).filter((n) => typeof n === "number" && !Number.isNaN(n));
+  if (!vals.length) return null;
+  if (keep === "latest") return vals[vals.length - 1];
+  const rollHigh = rollType !== "below";
+  const wantMax = keep === "worse" ? !rollHigh : rollHigh;
+  return wantMax ? Math.max(...vals) : Math.min(...vals);
+}
+
+/**
+ * How many results a reroll effect produces in total (the original plus its
+ * rerolls). `times` is the number of EXTRA rolls and defaults to 1, so the
+ * common "roll twice" needs no field set at all.
+ */
+export const rerollTotal = (effect) => 1 + Math.max(0, Math.trunc(effect?.times ?? 1));
+
+/**
+ * Scales a `conditional` value can key on, besides class level.
+ *
+ * TODO(magic): `arcaneValue` / `divineValue` exist so a custom-class power can
+ * state a cost that varies by the class's spellcasting value ("counts as 1
+ * power at Arcane Value 1-2, 2 at Arcane Value 3-4"). NOTHING CONSUMES THESE
+ * YET — the primitive is deliberately built ahead of the magic work, and the
+ * ability model still stores a plain numeric `powerValue`. Wire `powerValue`
+ * onto `levelValueField()` when magic lands.
+ */
+export const VALUE_SCALES = {
+  level: { label: "Class Level" },
+  arcaneValue: { label: "Arcane Value" },
+  divineValue: { label: "Divine Value" },
+  hitDice: { label: "Hit Dice" },
 };
 
 /* ---------------------------------------------------------------- */
@@ -293,12 +370,19 @@ export const ROLL_TYPES = {
  *   { kind:"perLevel", base, per }     base + per·(level-1)   (18+, −1/level)
  *   { kind:"breakpoints", breakpoints:[{atLevel,value}] }     +1/+2/+3 @1/7/13
  *   { kind:"progression", as, atLevel }   external class table (thief skills)
+ *   { kind:"conditional", on, breakpoints:[{atLevel,value}] } keyed on a
+ *                                      VALUE_SCALES scale instead of level
+ *
+ * A `conditional` reuses the breakpoint ladder verbatim — only the number fed
+ * into it changes, from class level to `scales[on]`. So `atLevel` reads "at
+ * this value of `on`", and one array shape covers both.
  *
  * `resolveLevelValue` returns the numeric value at `level`, or `null` when it
- * needs an external progression table the caller must resolve (kind
- * "progression"). Pure and Foundry-free.
+ * needs something the caller must supply — an external progression table (kind
+ * "progression") or a scale absent from `scales` (kind "conditional"). Pure and
+ * Foundry-free.
  */
-export function resolveLevelValue(lv, level = 1) {
+export function resolveLevelValue(lv, level = 1, scales = {}) {
   if (lv == null) return null;
   if (typeof lv === "number") return lv;
   if (typeof lv !== "object") return null;
@@ -308,12 +392,11 @@ export function resolveLevelValue(lv, level = 1) {
       return lv.flat ?? null;
     case "perLevel":
       return lv.base == null ? null : lv.base + (lv.per ?? 0) * (Math.max(1, level) - 1);
-    case "breakpoints": {
-      let value = null;
-      for (const bp of [...(lv.breakpoints ?? [])].sort((a, b) => a.atLevel - b.atLevel)) {
-        if (level >= bp.atLevel) value = bp.value;
-      }
-      return value;
+    case "breakpoints":
+      return atBreakpoint(lv.breakpoints, level);
+    case "conditional": {
+      const at = lv.on === "level" ? level : scales?.[lv.on];
+      return typeof at === "number" ? atBreakpoint(lv.breakpoints, at) : null;
     }
     case "progression":
       return null; // caller resolves via the referenced class table
@@ -322,7 +405,17 @@ export function resolveLevelValue(lv, level = 1) {
   }
 }
 
+/** The last breakpoint value `at` reaches, or null below the first one. */
+function atBreakpoint(breakpoints, at) {
+  let value = null;
+  for (const bp of [...(breakpoints ?? [])].sort((a, b) => a.atLevel - b.atLevel)) {
+    if (at >= bp.atLevel) value = bp.value;
+  }
+  return value;
+}
+
 function inferLevelKind(lv) {
+  if (lv.on) return "conditional";
   if (lv.flat != null) return "flat";
   if (lv.base != null) return "perLevel";
   if (Array.isArray(lv.breakpoints)) return "breakpoints";
