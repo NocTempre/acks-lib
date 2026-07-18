@@ -17,6 +17,7 @@ import {
   SENSE_TYPES,
   NATURAL_WEAPONS,
   EFFECT_TYPES,
+  EFFECT_MODES,
   PROFICIENCY_DOMAINS,
   PROFICIENCY_BREADTH,
   PROGRESSION_CLASSES,
@@ -36,6 +37,8 @@ export const html = () => new (F().HTMLField)({ required: false, blank: true, in
 export const choice = (enumObj, opts = {}) =>
   new (F().StringField)({ required: false, blank: true, initial: "", choices: choicesOf(enumObj), ...opts });
 export const choiceSet = (enumObj) => new (F().SetField)(new (F().StringField)({ choices: choicesOf(enumObj) }));
+/** A list of ability refs (def.prof.x / def.power.x). */
+export const refList = () => new (F().ArrayField)(new (F().StringField)({ blank: false }));
 
 /* --- LevelValue: flat | perLevel | breakpoints | progression --- */
 export function levelValueField() {
@@ -120,8 +123,24 @@ export function effectField() {
     amount: num(),
     unit: str(),
     period: str(),
+    /* --- Relational: depend on / grant / alter OTHER abilities ---
+     * `ref`/`refs`  the ability this effect targets (modifies) or requires/grants.
+     * `ifHas`       gate: the effect applies only while the character also has
+     *               these — the books' "if separately proficient in Searching…"
+     *               and "if the character also has Bright Lore of Aura…".
+     * `mode`        add | replace | set — "instead of" is a replace variant.
+     * `stacksWith` / `notStacksWith`  explicit stacking rules, e.g. Diplomacy
+     *               stacks with Mystic Aura but NOT Intimidation or Seduction.
+     * `choose`      for `grants`: pick N of `refs`. */
+    ref: str(),
+    refs: refList(),
+    ifHas: refList(),
+    mode: choice(EFFECT_MODES),
+    stacksWith: refList(),
+    notStacksWith: refList(),
+    choose: num({ integer: true }),
     // shared
-    condition: str(), // situational qualifier
+    condition: str(), // free-text situational qualifier (when no structured form fits)
     note: str(),
   });
 }

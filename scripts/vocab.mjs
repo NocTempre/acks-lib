@@ -131,6 +131,10 @@ export const EFFECT_TYPES = {
   progressionAs: { label: "Progresses As Class" }, // "as a thief of his level"
   proficiencyGrant: { label: "Proficiency Grant" }, // weapon/armor/fighting-style proficiency
   limitation: { label: "Limitation / Drawback" }, // a restriction or penalty — attaches to ANY ability
+  // --- Relational: abilities that depend on, grant, or alter OTHER abilities ---
+  requires: { label: "Requires" }, // prerequisite ability/abilities
+  grants: { label: "Grants" }, // confers other abilities (optionally choose N)
+  modifies: { label: "Modifies" }, // changes another ability's value/throw
   immunity: { label: "Immunity" },
   resistance: { label: "Resistance" },
   susceptibility: { label: "Susceptibility" },
@@ -236,6 +240,19 @@ export const RESOURCE_KINDS = {
   spellSlot: { label: "Spell Slot" },
   stigma: { label: "Stigma" },
   hp: { label: "Hit Points" },
+};
+
+/**
+ * How an effect combines with what it targets. The books distinguish these
+ * constantly: Skulking ADDs +2 to Hiding/Sneaking throws; Alertness REPLACEs
+ * its own 14+ with "+2 to your throw instead" when you already have Searching;
+ * Counterspelling's +2 caster levels becomes 3 (a REPLACE variant) when you
+ * also have Bright Lore of Aura.
+ */
+export const EFFECT_MODES = {
+  add: { label: "Add" },
+  replace: { label: "Replace" },
+  set: { label: "Set" },
 };
 
 /** Roll comparison (mirror core `CONFIG.ACKS.roll_type`). */

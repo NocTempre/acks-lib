@@ -33,6 +33,14 @@ t("DAMAGE_TYPES mirrors the acks-monsters value set", () => {
   ]);
 });
 
+t("relational effect vocabulary is present", () => {
+  for (const k of ["requires", "grants", "modifies", "limitation", "proficiencyGrant"]) {
+    assert.ok(vocab.EFFECT_TYPES[k], `EFFECT_TYPES.${k}`);
+  }
+  assert.deepEqual(Object.keys(vocab.EFFECT_MODES), ["add", "replace", "set"]);
+  assert.deepEqual(Object.keys(vocab.PROFICIENCY_BREADTH), ["unrestricted", "broad", "narrow", "restricted"]);
+});
+
 t("resolveLevelValue: flat", () => {
   assert.equal(R(5, 9), 5);
   assert.equal(R({ kind: "flat", flat: 3 }, 20), 3);
