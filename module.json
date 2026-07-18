@@ -4,6 +4,8 @@
   "description": "Shared primitives, effect vocabulary, and contracts for the ACKS II module family.",
   "version": "0.1.0",
   "authors": [{ "name": "NocTempre" }],
+  "library": true,
+  "socket": false,
   "license": "LICENSE",
   "compatibility": {
     "minimum": "14",
