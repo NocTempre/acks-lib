@@ -256,6 +256,26 @@ export const EFFECT_MODES = {
   set: { label: "Set" },
 };
 
+/**
+ * How a converted / retired thing is surfaced. A RENAMED thing just resolves —
+ * it needs no marker. Content the books removed deliberately is a CAUTION;
+ * content merely omitted from ACKS II (and which may return) is INFO, since it
+ * still works, it just was not designed for this edition.
+ */
+export const CONVERSION_STATUS = {
+  renamed: { label: "Renamed", severity: "none", tip: "" },
+  deleted: {
+    label: "Deleted",
+    severity: "caution",
+    tip: "This content is not advised for a typical ACKS II campaign.",
+  },
+  absent: {
+    label: "Absent",
+    severity: "info",
+    tip: "This content has not been designed for ACKS II, use with care.",
+  },
+};
+
 /** Roll comparison (mirror core `CONFIG.ACKS.roll_type`). */
 export const ROLL_TYPES = {
   result: { label: "=" },
