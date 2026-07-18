@@ -98,6 +98,7 @@ export const ABILITY_CATEGORIES = {
   classPower: { label: "Class Power" },
   monsterAbility: { label: "Monster Ability" },
   skill: { label: "Skill" },
+  drawback: { label: "Custom Drawback" }, // JJ "Custom Drawbacks" — traded FOR build points
   weaponProficiency: { label: "Weapon Proficiency" },
   armorProficiency: { label: "Armor Proficiency" },
   fightingStyle: { label: "Fighting Style" },
