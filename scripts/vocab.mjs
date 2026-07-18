@@ -98,13 +98,25 @@ export const ABILITY_CATEGORIES = {
   classPower: { label: "Class Power" },
   monsterAbility: { label: "Monster Ability" },
   skill: { label: "Skill" },
+  weaponProficiency: { label: "Weapon Proficiency" },
+  armorProficiency: { label: "Armor Proficiency" },
+  fightingStyle: { label: "Fighting Style" },
+};
+
+/** Domains a `proficiencyGrant` effect covers (RR Combat: Combat Proficiencies). */
+export const PROFICIENCY_DOMAINS = {
+  weapon: { label: "Weapon" },
+  armor: { label: "Armor" },
+  fightingStyle: { label: "Fighting Style" },
 };
 
 /** The typed effect primitives an ability's `effects[]` may hold. */
 export const EFFECT_TYPES = {
-  modifier: { label: "Modifier" }, // flat/level-scaling bonus or penalty to a target
+  modifier: { label: "Modifier" }, // flat/level-scaling bonus OR penalty to a target
   throw: { label: "Proficiency Throw" }, // a target-number roll
   progressionAs: { label: "Progresses As Class" }, // "as a thief of his level"
+  proficiencyGrant: { label: "Proficiency Grant" }, // weapon/armor/fighting-style proficiency
+  limitation: { label: "Limitation / Drawback" }, // a restriction or penalty — attaches to ANY ability
   immunity: { label: "Immunity" },
   resistance: { label: "Resistance" },
   susceptibility: { label: "Susceptibility" },
