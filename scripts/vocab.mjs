@@ -152,6 +152,21 @@ export const EFFECT_TYPES = {
   capability: { label: "Capability" }, // marker; detail lives in the (lazy) description
 };
 
+/**
+ * WHOSE roll an effect modifies. Without this a penalty an ability imposes on
+ * its victims is stored identically to one the character suffers, which
+ * inverts the ability — the Blind Fighting failure mode in another costume.
+ * The thief skill Hiding penalises the OPPONENT's surprise roll and their
+ * melee attacks against a hidden thief; as a bare `{target:"surprise",
+ * value:-2}` that reads as a penalty on the thief. Defaults to `self`, so
+ * every effect written before this existed keeps its meaning.
+ */
+export const EFFECT_SUBJECTS = {
+  self: { label: "The character" },
+  opponent: { label: "The opponent" },
+  ally: { label: "An ally" },
+};
+
 /** What a `modifier` effect adjusts. */
 export const MODIFIER_TARGETS = {
   attackThrow: { label: "Attack Throw" },

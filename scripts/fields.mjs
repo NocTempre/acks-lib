@@ -18,6 +18,7 @@ import {
   NATURAL_WEAPONS,
   EFFECT_TYPES,
   EFFECT_MODES,
+  EFFECT_SUBJECTS,
   PROFICIENCY_DOMAINS,
   PROFICIENCY_BREADTH,
   PROGRESSION_CLASSES,
@@ -146,6 +147,10 @@ export function effectField() {
     target: str(), // a MODIFIER_TARGETS key, or a save/proficiency name
     value: levelValueField(),
     forWhat: str(), // the activity a throw/modifier applies to ("Dungeonbashing")
+    // WHOSE roll this modifies. Without it, a penalty the ability imposes on
+    // its victims is indistinguishable from one the character suffers, which
+    // inverts the ability. Defaults to self, so existing effects are unchanged.
+    appliesTo: choice(EFFECT_SUBJECTS, { initial: "self" }),
     roll: str(), // e.g. "1d20"
     rollType: choice(ROLL_TYPES),
     // progressionAs
