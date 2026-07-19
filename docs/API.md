@@ -1,8 +1,9 @@
-# acks-lib API (v0.1)
+# acks-lib API (v0.6)
 
-`acks-lib` is the family's shared-primitives library. **v0.1 scope is the
-effect/ability vocabulary** the abilities program needs — deliberately *not* the
-full [FAMILY.md](../../acks-module-template/docs/FAMILY.md) §3 plumbing (tables
+`acks-lib` is the family's shared-primitives library. **Scope is the
+effect/ability vocabulary** the abilities program needs, plus the scoping
+primitives the social rolls need (v0.6) — deliberately *not* the full
+[FAMILY.md](../../acks-module-template/docs/FAMILY.md) §3 plumbing (tables
 registry, socket relay, economy data), which stays that refactor's Phase 1
 backlog. `library: true`, `socket: false`, requires only the `acks` system.
 
@@ -16,7 +17,7 @@ backlog. `library: true`, `socket: false`, requires only the `acks` system.
 
 ```
 acksLib = {
-  apiVersion: 1,
+  apiVersion: 2,
   vocab,               // scripts/vocab.mjs — enums + resolvers (Foundry-free)
   fields,              // scripts/fields.mjs — DataModel field-builders (Foundry-only)
   resolveLevelValue,   // (levelValue, level, scales?) → number | null
@@ -30,11 +31,44 @@ to `{ key: label }` for DataModel `choices`.
 
 - **Shared with acks-monsters** (value-identical mirror until its deferred
   migration): `DAMAGE_TYPES`, `MOVEMENT_TYPES`, `VISION_TYPES`, `SENSE_TYPES`,
-  `NATURAL_WEAPONS`.
+  `NATURAL_WEAPONS`, `ALIGNMENTS`.
 - **Ability effect model** (new): `ABILITY_CATEGORIES`, `EFFECT_TYPES`,
   `MODIFIER_TARGETS`, `EFFECT_KEYS`, `CONDITION_KEYS`, `PROGRESSION_CLASSES`,
   `PROGRESSION_LEVELS`, `SPELL_LIKE_FREQ`, `RESOURCE_KINDS`, `ROLL_TYPES`,
   `REROLL_KEEP`, `VALUE_SCALES`, `CONVERSION_STATUS`.
+- **Scoping** (v0.6): `INFLUENCE_TONES`, `SCOPE_ALIGNMENT_MODES`.
+
+### Scoping — when a modifier applies
+
+`condition` on an effect is free text a human reads. The scoping fields are the
+part a machine can decide, and `scopeApplies(effect, ctx)` is the one place
+that decides them.
+
+| field | meaning |
+|---|---|
+| `vsKinds` | target kind tokens (`animal`, `dwarf`, `human`, `demi-human`, `monster`). The token vocabulary belongs to the **consumer** — lib carries the list and matches it. |
+| `vsAlignment` | an `ALIGNMENTS` key the target must be |
+| `vsAlignmentMode` | `gate` (default) — applies only versus that alignment; `sign` — applies always, negated otherwise |
+| `tones` | restrict to some of the three `INFLUENCE_TONES` |
+| `optionalRule` | obeys a world setting of this name; **absent means enabled** |
+| `kickerAt` / `kickerNote` | a rider that fires when the roll total reaches `kickerAt` (Mystic Aura's 12+ bewitched) |
+
+```js
+scopeApplies({ vsKinds: ["animal"] }, { kinds: ["animal"] })
+// → { applies: true, sign: 1, undetermined: false }
+```
+
+`gate` and `sign` are separate modes because the books write both and they are
+different rules: Ancient Pacts is +1 versus Chaotic monsters and nothing
+otherwise; Deathly Visage is +2 versus Chaotic and −2 versus everyone else.
+Storing either as the other is wrong by double the value, in the direction that
+matters most.
+
+**`undetermined` is the field to respect.** It means a scope was declared but
+`ctx` could not settle it — an untyped target, no tone chosen yet. That is not
+the same as a scope that failed, and collapsing the two makes a bonus vanish
+against a target the GM simply has not classified. Offer an undetermined
+modifier as a manual toggle; never drop it and never auto-apply it.
 
 ### LevelValue
 

@@ -78,6 +78,13 @@ export const SENSE_TYPES = {
   mechWebbed: { label: "Webbed Mechanoreception", ranged: true },
 };
 
+/** Alignment (MM Overview p.15; Creation p.398). */
+export const ALIGNMENTS = {
+  lawful: { label: "Lawful" },
+  neutral: { label: "Neutral" },
+  chaotic: { label: "Chaotic" },
+};
+
 /** Movement types; the multi-row Speed table (MM Overview p.11). */
 export const MOVEMENT_TYPES = {
   land: { label: "Land" },
@@ -401,6 +408,93 @@ export function nonStackingGroups(abilities) {
     }
   }
   return Object.fromEntries([...by].filter(([, ids]) => ids.length > 1));
+}
+
+/* ---------------------------------------------------------------- */
+/*  Scoping — WHEN a modifier applies to a particular roll           */
+/* ---------------------------------------------------------------- */
+
+/**
+ * The three encounter tones (RR 84-87). Vocabulary, not a module's private
+ * enum: a proficiency that helps only when parleying is a fact about the
+ * proficiency, and any consumer resolving a reaction roll needs to know it.
+ */
+export const INFLUENCE_TONES = {
+  diplomacy: { label: "Diplomacy" },
+  intimidation: { label: "Intimidation" },
+  seduction: { label: "Seduction" },
+};
+
+/**
+ * How a target-alignment scope behaves.
+ *
+ * The books write both, and they are NOT the same rule. Ancient Pacts is
+ * +1 versus Chaotic monsters and nothing at all otherwise — a GATE. Deathly
+ * Visage is +2 versus Chaotic beings and −2 versus everyone else — a SIGN
+ * flip. Storing either one as the other is wrong by up to double the value in
+ * the direction that matters most.
+ */
+export const SCOPE_ALIGNMENT_MODES = {
+  gate: { label: "Only Versus This Alignment" },
+  sign: { label: "Bonus Versus, Penalty Otherwise" },
+};
+
+/**
+ * Does a scoped effect apply to this roll, and with which sign?
+ *
+ * `condition` on an effect is free text a human reads. This is the part a
+ * machine can decide: which targets, which tone, which optional rule. Pure and
+ * Foundry-free, so a roller, a chat-card builder and offline tooling all reach
+ * the same verdict.
+ *
+ * `ctx` supplies what is known about the roll:
+ *   kinds          Set|Array of the target's kind tokens (see the consumer's
+ *                  own typing; lib does not prescribe the vocabulary)
+ *   alignment      the target's alignment (an ALIGNMENTS key)
+ *   tone           the active INFLUENCE_TONES key, when it is an influence roll
+ *   optionalRules  { [ruleName]: boolean } — absent means enabled
+ *
+ * Returns `{ applies, sign, undetermined }`. **`undetermined` is the important
+ * one**: it means a scope was declared but `ctx` could not settle it — an
+ * unknown target kind, no tone chosen yet. That is NOT the same as a scope that
+ * failed, and collapsing the two is how a bonus silently disappears against a
+ * target the GM simply has not typed. Callers should offer an undetermined
+ * modifier as a manual toggle rather than dropping or auto-applying it.
+ */
+export function scopeApplies(effect = {}, ctx = {}) {
+  let sign = 1;
+  let undetermined = false;
+
+  const kinds = effect.vsKinds ?? [];
+  if (kinds.length) {
+    const have = ctx.kinds instanceof Set ? ctx.kinds : new Set(ctx.kinds ?? []);
+    if (!have.size) undetermined = true;
+    else if (![...kinds].some((k) => have.has(String(k).toLowerCase()))) return { applies: false, sign, undetermined: false };
+  }
+
+  if (effect.vsAlignment) {
+    const mode = effect.vsAlignmentMode || "gate";
+    if (!ctx.alignment) undetermined = true;
+    else if (ctx.alignment !== effect.vsAlignment) {
+      if (mode === "sign") sign = -1;
+      else return { applies: false, sign, undetermined: false };
+    }
+  }
+
+  const tones = effect.tones ?? [];
+  if (tones.length) {
+    if (!ctx.tone) undetermined = true;
+    else if (!tones.includes(ctx.tone)) return { applies: false, sign, undetermined: false };
+  }
+
+  // An optional rule that has never been registered is treated as ON: a module
+  // shipping content for a rule the world has not heard of should not silently
+  // withhold it. Only an explicit false switches it off.
+  if (effect.optionalRule && ctx.optionalRules?.[effect.optionalRule] === false) {
+    return { applies: false, sign, undetermined: false };
+  }
+
+  return { applies: !undetermined, sign, undetermined };
 }
 
 /** Which of a reroll's results is kept. */

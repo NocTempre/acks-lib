@@ -9,6 +9,9 @@
  */
 import {
   choicesOf,
+  ALIGNMENTS,
+  INFLUENCE_TONES,
+  SCOPE_ALIGNMENT_MODES,
   DAMAGE_TYPES,
   EFFECT_KEYS,
   CONDITION_KEYS,
@@ -204,6 +207,41 @@ export function effectField() {
     stacksWith: refList(),
     notStacksWith: refList(),
     choose: num({ integer: true }),
+    /* --- Scoping: WHEN this modifier applies to a particular roll ---
+     * `condition` (below) is free text a human reads; these are the parts a
+     * machine can decide, and `scopeApplies()` in vocab.mjs is the one place
+     * that decides them.
+     *
+     * `vsKinds`     target kind tokens — "animal", "dwarf", "human",
+     *               "demi-human", "monster". Beast Friendship is +2 vs normal
+     *               animals; without this it stores as an unconditional +2 and
+     *               applies to everything the character talks to. The token
+     *               vocabulary is the CONSUMER's (acks-influence types actors
+     *               from class names and acks-monsters' typing) — lib only
+     *               carries the list and does the matching.
+     * `vsAlignment` / `vsAlignmentMode`  gate vs sign-flip; see
+     *               SCOPE_ALIGNMENT_MODES, which exists because Ancient Pacts
+     *               and Deathly Visage are different rules wearing the same
+     *               shape.
+     * `tones`       restrict to some of the three encounter tones.
+     * `optionalRule` the effect obeys a world setting of this name (the By
+     *               This Axe dwarven-caste rule is the first). Absent from the
+     *               world's settings means enabled — content for an unheard-of
+     *               rule should not silently vanish. */
+    vsKinds: refList(),
+    vsAlignment: choice(ALIGNMENTS),
+    vsAlignmentMode: choice(SCOPE_ALIGNMENT_MODES, { initial: "gate" }),
+    tones: new (F().ArrayField)(new (F().StringField)({ choices: choicesOf(INFLUENCE_TONES) })),
+    optionalRule: str(),
+    /* --- Kicker: a rider that fires on a good enough total ---
+     * Mystic Aura's "+1, and if that brings the total to 12+ the subject acts
+     * as if bewitched" is two mechanics in one sentence. The modifier is the
+     * number; this is the rest. `kickerAt` is the total that triggers it,
+     * `kickerNote` what happens — deliberately prose, because the outcomes the
+     * books describe here (bewitched-while-present, deduces it afterwards) are
+     * rulings, not numbers. */
+    kickerAt: num({ integer: true }),
+    kickerNote: str(),
     /* --- reroll: "roll twice and keep the better" ---
      * `times` is the number of EXTRA rolls (default 1). `keep` decides which
      * result stands; `resolveReroll` reads `rollType` above so "better" means

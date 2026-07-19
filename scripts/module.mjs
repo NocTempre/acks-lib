@@ -13,7 +13,7 @@ import { resolveLevelValue } from "./vocab.mjs";
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
-  apiVersion: 1,
+  apiVersion: 2,
   vocab,
   fields,
   resolveLevelValue,
