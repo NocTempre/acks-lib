@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.6.0
+
+- **Scoping primitives — WHEN a modifier applies.** The model could say what a
+  modifier adjusts but not when it applies to a particular roll, so six axes
+  had no home and acks-influence carried them in its own ActiveEffect flags
+  where nothing else could read them. Adds `ALIGNMENTS` (mirroring
+  acks-monsters, value-identical), `INFLUENCE_TONES`, `SCOPE_ALIGNMENT_MODES`
+  and `scopeApplies(effect, ctx)`; effect fields gain `vsKinds`,
+  `vsAlignment`, `vsAlignmentMode`, `tones`, `optionalRule`, `kickerAt` and
+  `kickerNote`.
+  - **Gate and sign are different things, not a flag.** Ancient Pacts is +1
+    versus Chaotic monsters and nothing otherwise; Deathly Visage is +2 versus
+    Chaotic and −2 versus everyone else. Storing either as the other is wrong
+    by double the value, in the direction that matters most. Default is gate.
+  - **`undetermined` is not `false`.** A scope the context cannot settle — an
+    untyped target, no tone chosen — has not failed. Collapsing the two makes
+    a bonus silently vanish against a target the GM merely hasn't classified,
+    so callers can offer undetermined modifiers as manual toggles.
+- Compiled LevelDB packs are no longer committed; they are build output.
+
 ## 0.5.0
 
 - **`appliesTo` — whose roll an effect modifies.** `self` (the default),
