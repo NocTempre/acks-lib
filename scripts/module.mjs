@@ -1,22 +1,30 @@
 /**
  * acks-lib — shared primitives for the ACKS II module family.
  *
- * v0.1 scope: the effect/vocabulary primitives the abilities work needs
- * (see docs/API.md). Plumbing/interop contracts from FAMILY.md §3 (tables
- * registry, socket relay, economy data) are NOT part of this build — they
- * remain the family-refactor Phase 1 backlog.
+ * Scope: the effect/vocabulary primitives the abilities work needs, plus —
+ * pulled forward by the table extraction program (template
+ * docs/CONTENT-EXTRACTION.md) — the layered tables registry, the named-
+ * contract service registry, and the ruledata loader. Remaining FAMILY.md §3
+ * plumbing (socket relay, sheet helpers) stays the family-refactor Phase 1
+ * backlog; §3c's economy.json is SUPERSEDED (no book values ship in the lib).
  */
 import { MODULE_ID } from "./constants.mjs";
 import * as vocab from "./vocab.mjs";
 import * as fields from "./fields.mjs";
+import * as tables from "./tables.mjs";
+import * as services from "./services.mjs";
+import { loadRuledata } from "./ruledata.mjs";
 import { resolveLevelValue } from "./vocab.mjs";
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
-  apiVersion: 2,
+  apiVersion: 3,
   vocab,
   fields,
   resolveLevelValue,
+  tables,
+  services,
+  loadRuledata,
 });
 
 // Core-deferral shim (FAMILY.md §3d): if/when a surface is upstreamed into the

@@ -154,4 +154,53 @@ t("reroll + companion primitives are in the effect vocabulary", () => {
   assert.ok(vocab.VALUE_SCALES.arcaneValue, "VALUE_SCALES.arcaneValue (magic TODO)");
 });
 
+// --- tables registry (layered) + services --------------------------------
+const T = await import("../scripts/tables.mjs");
+const S = await import("../scripts/services.mjs");
+
+t("tables: priority layering — highest wins, unregister falls back", () => {
+  T.resetTables();
+  T.registerTable({ id: "wages", tables: { ladder: { v: "sample" } } });
+  T.registerTable({ id: "wages", tables: { ladder: { v: "world" } } }, { priority: T.PRIORITY.WORLD, source: "import" });
+  assert.equal(T.getTable("wages", "ladder").v, "world");
+  assert.deepEqual(T.docInfo(), [
+    { id: "wages", priority: 0, source: null },
+    { id: "wages", priority: 20, source: "import" },
+  ]);
+  T.unregisterTable("wages", { priority: T.PRIORITY.WORLD });
+  assert.equal(T.getTable("wages", "ladder").v, "sample");
+  T.unregisterTable("wages");
+  assert.equal(T.hasDoc("wages"), false);
+  assert.throws(() => T.getDoc("wages"), /not registered/);
+});
+
+t("tables: same-layer re-registration replaces (idempotent re-import)", () => {
+  T.resetTables();
+  T.registerTable({ id: "people", tables: { a: 1 } }, { priority: 20 });
+  T.registerTable({ id: "people", tables: { a: 2 } }, { priority: 20 });
+  assert.equal(T.getDoc("people").tables.a, 2);
+  assert.equal(T.docInfo().length, 1);
+});
+
+t("tables: initTables alias + getThrowDef + bracketRow open bound", () => {
+  T.resetTables();
+  T.initTables({ id: "throws", throws: { loyalty: { target: 9 } } });
+  assert.equal(T.getThrowDef("throws", "loyalty").target, 9);
+  assert.throws(() => T.getTable("throws", "nope"), /no table/);
+  const rows = [{ min: 0, max: 4, r: "low" }, { min: 5, max: null, r: "open" }];
+  assert.equal(T.bracketRow(rows, 99).r, "open");
+  assert.equal(T.bracketRow(rows, 4).r, "low");
+  T.resetTables();
+});
+
+t("services: register/get/names; absent contract is null, never a throw", () => {
+  S.resetServices();
+  assert.equal(S.get("ruledata-import"), null);
+  const impl = { importDoc: async () => {} };
+  S.register("ruledata-import", impl);
+  assert.equal(S.get("ruledata-import"), impl);
+  assert.deepEqual(S.names(), ["ruledata-import"]);
+  S.resetServices();
+});
+
 console.log(`\n${n} tests passed`);

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.0
+
+- **Layered tables registry** (`scripts/tables.mjs`, Foundry-free) — the
+  FAMILY.md §3a registry pulled forward for the table extraction program
+  (template docs/CONTENT-EXTRACTION.md): documents register per priority
+  layer (sample 0 < catalog 10 < world 20), reads resolve the highest,
+  same-layer re-registration replaces, unregistering falls back. Henchmen's
+  `getDoc/getTable/getThrowDef/bracketRow` contract kept verbatim (plus an
+  `initTables` drop-in alias) so consumer adoption is a shim. `docInfo()` /
+  `hasDoc()` feed missing-tables UX — with NO samples shipping anywhere
+  (ruling 1), "absent" is a state every consumer must render.
+- **Service-contract registry** (`scripts/services.mjs`) — providers
+  register named contracts at `init`; consumers `get()` them from hooks
+  onward; absent contract is `null`, never a throw. First contract defined:
+  **`ruledata-import` v1** (provider: acks-location; consumers: content
+  import flows) — `importDoc`/`removeDoc`/`listDocs`, persistence entirely
+  provider-side.
+- **Ruledata loader** (`scripts/ruledata.mjs`, Foundry-only) —
+  `loadRuledata(moduleId, ids, {priority})`; a missing file is a normal,
+  reported state (`{loaded, missing}`), not an error.
+- `apiVersion: 3`. FAMILY.md §3c's plan to ship `ruledata/economy.json` in
+  the lib is superseded: no book-read value ships in any repo.
+
 ## 0.6.0
 
 - **Scoping primitives — WHEN a modifier applies.** The model could say what a

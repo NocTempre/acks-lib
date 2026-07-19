@@ -1,11 +1,14 @@
-# acks-lib API (v0.6)
+# acks-lib API (v0.7)
 
 `acks-lib` is the family's shared-primitives library. **Scope is the
-effect/ability vocabulary** the abilities program needs, plus the scoping
-primitives the social rolls need (v0.6) — deliberately *not* the full
-[FAMILY.md](../../acks-module-template/docs/FAMILY.md) §3 plumbing (tables
-registry, socket relay, economy data), which stays that refactor's Phase 1
-backlog. `library: true`, `socket: false`, requires only the `acks` system.
+effect/ability vocabulary** the abilities program needs, the scoping
+primitives the social rolls need (v0.6), and — pulled forward by the table
+extraction program (template docs/CONTENT-EXTRACTION.md) — the **layered
+tables registry, the service-contract registry, and the ruledata loader**
+(v0.7). Still *not* here from [FAMILY.md](../../acks-module-template/docs/FAMILY.md)
+§3: the socket relay and sheet helpers (Phase 1 backlog); §3c's
+`economy.json` is **superseded** — no book-read value ships in the lib.
+`library: true`, `socket: false`, requires only the `acks` system.
 
 ## Exposure
 
@@ -17,12 +20,62 @@ backlog. `library: true`, `socket: false`, requires only the `acks` system.
 
 ```
 acksLib = {
-  apiVersion: 2,
+  apiVersion: 3,
   vocab,               // scripts/vocab.mjs — enums + resolvers (Foundry-free)
   fields,              // scripts/fields.mjs — DataModel field-builders (Foundry-only)
   resolveLevelValue,   // (levelValue, level, scales?) → number | null
+  tables,              // scripts/tables.mjs — layered rules-table registry (Foundry-free)
+  services,            // scripts/services.mjs — named-contract registry (Foundry-free)
+  loadRuledata,        // scripts/ruledata.mjs — fetch+register a module's ruledata (Foundry-only)
 }
 ```
+
+## `tables` — layered rules-table registry (Foundry-free)
+
+Documents are plain JSON carrying `id` (`{ id, source, tables, throws? }`).
+Each id holds at most one document per **priority layer**; reads resolve the
+highest layer present:
+
+| layer | who registers |
+|---|---|
+| `PRIORITY.SAMPLE` (0) | a module's shipped defaults — none ship today (extraction-program ruling: no book values, no samples) |
+| `PRIORITY.CATALOG` (10) | premium/companion content modules |
+| `PRIORITY.WORLD` (20) | per-world imported tables (via the `ruledata-import` contract) |
+
+`registerTable(doc, {priority, source})` (same-layer re-registration
+replaces — idempotent re-import) · `initTables(doc)` (drop-in alias, layer
+0) · `unregisterTable(docId, {priority?})` (layer removal falls back to the
+next-highest; no priority = remove all layers) · `getDoc` / `getTable` /
+`getThrowDef` (throw when absent — callers gate with `hasDoc`) · `hasDoc` ·
+`docInfo()` → `[{id, priority, source}]` for missing-tables UX ·
+`bracketRow(rows, value)` (null max = open-ended) · `resetTables()`.
+
+Consumers read ONLY through this registry — never a sibling module's name —
+so any provider can substitute data without consumer changes.
+
+## `services` — named-contract registry (Foundry-free)
+
+`register(name, impl)` at `init`; `get(name)` from hooks onward (→ `null`
+when absent, never a throw); `names()`. Contract names and shapes are
+defined HERE, never by module ids.
+
+### Contract `ruledata-import` v1
+
+Provider: the location-domain binding target (acks-location). Consumers:
+content import flows (acks-content). Shape:
+
+```
+{
+  importDoc(doc, {priority = 20, source}) → Promise<void>,  // persist + register
+  removeDoc(docId, {priority = 20})       → Promise<void>,  // unpersist + unregister
+  listDocs() → [{id, priority, source}]
+}
+```
+
+Persistence (world storage, re-registration on world load, GM permission
+checks) is entirely the provider's job; consumers call `importDoc` and
+nothing else. No provider registered ⇒ `get("ruledata-import")` is `null`
+and import UIs say "no import target installed".
 
 ## `vocab` — Foundry-free enums (Node-importable)
 
