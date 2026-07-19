@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0
+
+- **`appliesTo` — whose roll an effect modifies.** `self` (the default),
+  `opponent` or `ally`. The thief skill Hiding penalises the OPPONENT's surprise
+  roll and their attacks against the hidden thief; stored as
+  `{target:"surprise", value:-2}` that read as a penalty on the thief, inverting
+  the ability, and nothing in the schema could tell the two apart. It is the
+  Blind Fighting failure mode wearing a different costume. Existing effects are
+  unaffected — the default is `self`, which is what they already meant.
+
 ## 0.4.0
 
 - **An ability can offer MANY rolls.** `rollField()` / `rollsField()` — each roll

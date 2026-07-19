@@ -2,7 +2,7 @@
   "id": "acks-lib",
   "title": "ACKS II — Library",
   "description": "Shared primitives, effect vocabulary, and contracts for the ACKS II module family.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "authors": [{ "name": "NocTempre" }],
   "library": true,
   "socket": false,
