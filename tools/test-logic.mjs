@@ -136,6 +136,18 @@ t("capabilities: same capability twice does not stack", () => {
   assert.deepEqual(vocab.nonStackingGroups([{ id: "def.prof.alertness", provides: [] }]), {}, "one of a kind stacks fine");
 });
 
+t("a rank ladder resolves like a level ladder, on its own scale", () => {
+  // Animal Husbandry: diagnose on 11+ at one rank, 7+ at two, 3+ at three.
+  const target = { kind: "conditional", on: "rank", breakpoints: [
+    { atLevel: 1, value: 11 }, { atLevel: 2, value: 7 }, { atLevel: 3, value: 3 },
+  ] };
+  assert.equal(R(target, 1, { rank: 1 }), 11);
+  assert.equal(R(target, 20, { rank: 2 }), 7, "class level is irrelevant to a rank ladder");
+  assert.equal(R(target, 1, { rank: 3 }), 3);
+  assert.equal(R(target, 1, {}), null, "no rank supplied — the caller must say");
+  assert.ok(vocab.VALUE_SCALES.rank, "rank is a scale");
+});
+
 t("reroll + companion primitives are in the effect vocabulary", () => {
   for (const k of ["reroll", "companion"]) assert.ok(vocab.EFFECT_TYPES[k], `EFFECT_TYPES.${k}`);
   assert.deepEqual(Object.keys(vocab.REROLL_KEEP), ["better", "worse", "latest"]);

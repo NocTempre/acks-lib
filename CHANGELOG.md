@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- **An ability can offer MANY rolls.** `rollField()` / `rollsField()` — each roll
+  has its own label, formula, roll type, target and progression. A single
+  roll/target cannot express Animal Husbandry, which diagnoses, cures, cures
+  serious injury and extracts venom, three of those on their own ladder.
+- **`rank` is a value scale.** Several RR proficiencies are rated by how many
+  times they have been taken rather than by class level — 11+ at one rank, 7+ at
+  two, 3+ at three — so a target ladder can key on rank and resolve against it.
+
 ## 0.3.0
 
 - **Capabilities — the gate pattern.** An ability can now declare what it lets

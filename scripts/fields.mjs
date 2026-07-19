@@ -69,6 +69,34 @@ export function levelValueField() {
 }
 
 /**
+ * ONE named roll an ability offers.
+ *
+ * An ability is not one roll. Animal Husbandry diagnoses (11+ / 7+ / 3+ by
+ * rank), cures (18+), cures serious injury (14+) and extracts venom
+ * (18+ / 14+ / 10+) — four different rolls, three of them on their own rank
+ * progression. A single `rollTarget` cannot hold that, and picking one of them
+ * to be "the" roll silently loses the rest.
+ *
+ * The RECIPE says how many rolls an ability has and where each one is written.
+ * Everything in this shape — the label, the target, the progression, the
+ * qualifier — is read from the reader's own book.
+ */
+export function rollField() {
+  return new (F().SchemaField)({
+    key: str(), // stable within the ability, so a macro can name one roll
+    label: str(), // what the roll is called
+    formula: str(), // "1d20"
+    rollType: choice(ROLL_TYPES, { initial: "above" }),
+    target: levelValueField(), // flat, per-level, or a rank ladder
+    scale: choice(VALUE_SCALES, { initial: "level" }), // what `target` is keyed on
+    condition: str(), // when it applies, when that is not unconditional
+    note: str(),
+  });
+}
+
+export const rollsField = () => new (F().ArrayField)(rollField());
+
+/**
  * A pointer to a spell.
  *
  * TODO(magic): this is a PLACEHOLDER. It points at the core system's existing

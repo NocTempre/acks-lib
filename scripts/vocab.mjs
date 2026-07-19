@@ -434,6 +434,11 @@ export const rerollTotal = (effect) => 1 + Math.max(0, Math.trunc(effect?.times 
  */
 export const VALUE_SCALES = {
   level: { label: "Class Level" },
+  // How many TIMES the proficiency has been taken. Several RR proficiencies are
+  // rated this way rather than by level — Animal Husbandry's diagnosis throw is
+  // 11+ at one rank, 7+ at two, 3+ at three — and the ranks carry different
+  // titles (Veterinarian, Veterinary Surgeon) and unlock different rolls.
+  rank: { label: "Rank (times taken)" },
   arcaneValue: { label: "Arcane Value" },
   divineValue: { label: "Divine Value" },
   hitDice: { label: "Hit Dice" },
