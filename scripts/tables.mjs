@@ -7,17 +7,25 @@
  * shape: `{ id, source, tables: {…}, throws?: {…} }`). Each id holds at most
  * one document PER PRIORITY LAYER; reads resolve the highest layer present:
  *
- *   0  SAMPLE  — module-shipped default (none ship today: extraction-program
- *                ruling 1 — no book values, no fallback samples)
- *   10 CATALOG — premium/companion content module
- *   20 WORLD   — per-world imported tables (acks-content import via the
- *                `ruledata-import` service; persisted by its provider)
+ *   0  SAMPLE   — module-shipped default (none ship today: extraction-program
+ *                 ruling 1 — no book values, no fallback samples)
+ *   10 CATALOG  — premium/companion content module
+ *   20 WORLD    — per-world imported tables (acks-content import via the
+ *                 `ruledata-import` service; persisted by its provider)
+ *   30 OVERRIDE — GM tweaks parsed from world documents (RollTables /
+ *                 journals); usually a PARTIAL doc carrying only the
+ *                 tweaked tables
  *
  * Re-registering at the same layer replaces that layer (idempotent
  * re-import); unregistering a layer falls back to the next-highest.
+ *
+ * Reads LAYER PER TABLE: getDoc merges `tables`/`throws` maps ascending by
+ * priority (higher layers win per key; scalar fields come from the highest
+ * layer that defines them), so a partial override never hides the rest of
+ * the world doc beneath it. Full-doc layers behave exactly as before.
  */
 
-export const PRIORITY = Object.freeze({ SAMPLE: 0, CATALOG: 10, WORLD: 20 });
+export const PRIORITY = Object.freeze({ SAMPLE: 0, CATALOG: 10, WORLD: 20, OVERRIDE: 30 });
 
 /** docId → Map<priority, doc> */
 const _layers = new Map();
@@ -64,11 +72,22 @@ export function docInfo() {
   return out.sort((a, b) => a.id.localeCompare(b.id) || a.priority - b.priority);
 }
 
-/** @returns {object} the whole ruledata document (highest layer) */
+/** @returns {object} the ruledata document, layered per table (see header) */
 export function getDoc(docId) {
   const layers = _layers.get(docId);
   if (!layers?.size) throw new Error(`getDoc: ruledata "${docId}" not registered`);
-  return layers.get(Math.max(...layers.keys()));
+  const priorities = [...layers.keys()].sort((a, b) => a - b);
+  if (priorities.length === 1) return layers.get(priorities[0]);
+  const out = { tables: {}, throws: {} };
+  for (const p of priorities) {
+    const doc = layers.get(p);
+    for (const [k, v] of Object.entries(doc)) {
+      if (k === "tables" || k === "throws") Object.assign(out[k], v ?? {});
+      else out[k] = v;
+    }
+  }
+  if (!Object.keys(out.throws).length) delete out.throws;
+  return out;
 }
 
 /** @returns {object} one table of a ruledata document */

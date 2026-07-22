@@ -182,6 +182,17 @@ t("tables: same-layer re-registration replaces (idempotent re-import)", () => {
   assert.equal(T.docInfo().length, 1);
 });
 
+t("tables: partial OVERRIDE layers per table, never hides the world doc", () => {
+  T.resetTables();
+  T.registerTable({ id: "people", source: { book: "JJ" }, tables: { ages: { a: 1 }, castes: { h: 5 } } }, { priority: T.PRIORITY.WORLD });
+  T.registerTable({ id: "people", tables: { castes: { h: 10 } } }, { priority: T.PRIORITY.OVERRIDE });
+  assert.equal(T.getTable("people", "castes").h, 10); // override wins its table
+  assert.equal(T.getTable("people", "ages").a, 1); // world tables show through
+  assert.equal(T.getDoc("people").source.book, "JJ"); // scalars from the layer that has them
+  T.unregisterTable("people", { priority: T.PRIORITY.OVERRIDE });
+  assert.equal(T.getTable("people", "castes").h, 5); // revert falls back
+});
+
 t("tables: initTables alias + getThrowDef + bracketRow open bound", () => {
   T.resetTables();
   T.initTables({ id: "throws", throws: { loyalty: { target: 9 } } });
