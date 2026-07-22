@@ -1,6 +1,6 @@
 {
   "id": "acks-lib",
-  "title": "ACKS II â€” Library",
+  "title": "ACKS II — Library",
   "description": "Shared primitives, effect vocabulary, and contracts for the ACKS II module family.",
   "version": "0.8.0",
   "authors": [
