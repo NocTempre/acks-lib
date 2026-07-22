@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.2
+
+- Add the `url` field to the manifest (GitHub repo link), matching the rest of
+  the family.
+
 ## 0.8.1
 
 - Fix mojibake in the module title: `module.json` `title` was double-encoded
