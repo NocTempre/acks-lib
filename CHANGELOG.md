@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1
+
+- Fix mojibake in the module title: `module.json` `title` was double-encoded
+  (a UTF-8 em dash read as Windows-1252 and re-saved), showing as
+  `ACKS II â€" Library` on the Foundry module chip. Restored the proper em
+  dash so it matches `ACKS-LIB.Title` in `lang/en.json`.
+
 ## 0.7.0
 
 - **Layered tables registry** (`scripts/tables.mjs`, Foundry-free) — the
