@@ -77,6 +77,25 @@ checks) is entirely the provider's job; consumers call `importDoc` and
 nothing else. No provider registered ⇒ `get("ruledata-import")` is `null`
 and import UIs say "no import target installed".
 
+### Contract `ability-provider` v1
+
+Provider: the content binding (acks-content). Consumers: anything that
+embeds proficiency/power items on an actor from name tokens (henchmen's
+hire-time occupation packages). Shape:
+
+```
+{
+  resolve(tokens: string[]) → Promise<{ items: ItemData[], missing: string[] }>
+}
+```
+
+Tokens are printed proficiency names, optionally with a specialty and rank
+("Craft (scribe)", "Military Strategy 2"). The provider resolves each to an
+embeddable ability ItemData — reusing the world's already-imported item,
+else importing the definition from its own pipeline — and reports what it
+could not resolve; it never throws on content. The specialty suffix lands
+on the embedded copy's name only. No provider ⇒ consumers skip granting.
+
 ## `vocab` — Foundry-free enums (Node-importable)
 
 Enum objects are `{ key: { label, … } }`; `vocab.choicesOf(enumObj)` maps them
