@@ -56,6 +56,28 @@ export function unregisterTable(docId, { priority } = {}) {
 /** Remove all registered ruledata (tests). */
 export function resetTables() {
   _layers.clear();
+  _expected.clear();
+}
+
+/* ------------------------- expectations ------------------------- */
+/** docId → Set<tableId> that consumer modules declare they will read. */
+const _expected = new Map();
+
+/**
+ * Declare tables a consumer expects a document to carry. Import/materialize
+ * UX uses this to name what is missing and to generate EMPTY placeholder
+ * tables (first of their kind) that a GM can fill or replace by drag-drop.
+ */
+export function expectTables(docId, tableIds = []) {
+  if (!docId) return;
+  let set = _expected.get(docId);
+  if (!set) _expected.set(docId, (set = new Set()));
+  for (const id of tableIds) set.add(id);
+}
+
+/** Everything declared via expectTables: [{docId, tableIds}]. */
+export function expectedTables() {
+  return [..._expected.entries()].map(([docId, set]) => ({ docId, tableIds: [...set] }));
 }
 
 /** @returns {boolean} whether any layer of `docId` is registered */
