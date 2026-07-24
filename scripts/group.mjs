@@ -61,28 +61,31 @@ export async function setPrototype(group, source) {
   const snap = source.toObject();
   const sys = source.system ?? {};
 
+  // Every key is `system.`-prefixed: `actor.update` targets the Actor document,
+  // so system data lives under `system.*` (a bare `size.current` sets nothing).
+  // The field is `template`, not `prototype` — see group-data.mjs for why.
   const mirror = {
-    "prototype.uuid": source.uuid ?? null,
-    "prototype.type": source.type ?? "monster",
-    "prototype.label": source.name ?? "",
-    "prototype.snapshot": snap,
-    "prototype.snapshotTime": Math.floor(game?.time?.worldTime ?? 0),
+    "system.template.uuid": source.uuid ?? null,
+    "system.template.type": source.type ?? "monster",
+    "system.template.label": source.name ?? "",
+    "system.template.snapshot": snap,
+    "system.template.snapshotTime": Math.floor(game?.time?.worldTime ?? 0),
   };
   // Copy the mirror fields the source actually has (a character has hp/aac/saves
   // too, just under the same paths). Guarded reads: a source missing a field
   // leaves the group's default in place rather than writing undefined.
-  if (sys.hp) mirror["hp"] = { hd: sys.hp.hd, value: sys.hp.value, max: sys.hp.max, bhr: sys.hp.bhr };
-  if (sys.aac) mirror["aac"] = { value: sys.aac.value ?? 0, mod: sys.aac.mod ?? 0 };
-  if (sys.saves) mirror["saves"] = foundry.utils.deepClone(sys.saves);
-  if (sys.thac0?.throw != null) mirror["thac0.throw"] = sys.thac0.throw;
-  if (sys.movement?.base != null) mirror["movement.base"] = sys.movement.base;
-  if (sys.details?.alignment) mirror["details.alignment"] = sys.details.alignment;
-  if (sys.details?.morale != null) mirror["details.morale"] = sys.details.morale;
+  if (sys.hp) mirror["system.hp"] = { hd: sys.hp.hd, value: sys.hp.value, max: sys.hp.max, bhr: sys.hp.bhr };
+  if (sys.aac) mirror["system.aac"] = { value: sys.aac.value ?? 0, mod: sys.aac.mod ?? 0 };
+  if (sys.saves) mirror["system.saves"] = foundry.utils.deepClone(sys.saves);
+  if (sys.thac0?.throw != null) mirror["system.thac0.throw"] = sys.thac0.throw;
+  if (sys.movement?.base != null) mirror["system.movement.base"] = sys.movement.base;
+  if (sys.details?.alignment) mirror["system.details.alignment"] = sys.details.alignment;
+  if (sys.details?.morale != null) mirror["system.details.morale"] = sys.details.morale;
 
-  // Seed size from the prototype's number-appearing only if the group has none.
+  // Seed size from the template's number-appearing only if the group has none.
   if (!group.system.size?.current && !group.system.size?.formula) {
     const formula = sizeFromEcology(source) ?? "";
-    if (formula) mirror["size.formula"] = formula;
+    if (formula) mirror["system.size.formula"] = formula;
   }
   await group.update(mirror);
   return true;
@@ -97,22 +100,22 @@ export async function setPrototype(group, source) {
  * @returns {Promise<Actor|null>}
  */
 export async function ensureBaseActor(group) {
-  const proto = group.system.prototype ?? {};
-  if (proto.uuid) {
-    const existing = await fromUuid(proto.uuid);
+  const tmpl = group.system.template ?? {};
+  if (tmpl.uuid) {
+    const existing = await fromUuid(tmpl.uuid);
     // A world Actor is a valid base; a token/compendium doc is not.
     if (existing?.documentName === "Actor" && !existing.pack) return existing;
   }
-  const snap = foundry.utils.deepClone(proto.snapshot ?? {});
+  const snap = foundry.utils.deepClone(tmpl.snapshot ?? {});
   if (!snap.type) return null; // nothing to mint from
   delete snap._id;
-  snap.name = proto.label || snap.name || "Group prototype";
+  snap.name = tmpl.label || snap.name || "Group template";
   foundry.utils.setProperty(snap, "prototypeToken.actorLink", false);
-  // Keep prototypes out of the way and non-playable: owned by nobody, hidden.
+  // Keep template actors out of the way and non-playable: owned by nobody, hidden.
   snap.ownership = { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE };
-  foundry.utils.setProperty(snap, `flags.${MODULE_ID}.prototypeFor`, group.uuid);
+  foundry.utils.setProperty(snap, `flags.${MODULE_ID}.templateFor`, group.uuid);
   const base = await Actor.implementation.create(snap);
-  if (base) await group.update({ "prototype.uuid": base.uuid });
+  if (base) await group.update({ "system.template.uuid": base.uuid });
   return base ?? null;
 }
 
@@ -153,7 +156,7 @@ export async function materializeMember(group, { name = "", extraDelta = {} } = 
     actorUuid: "",
     note: "",
   };
-  await group.update({ roster: [...group.system.toObject().roster, member] });
+  await group.update({ "system.roster": [...group.system.toObject().roster, member] });
   return member;
 }
 
@@ -188,7 +191,7 @@ export async function applyCasualties(group, n) {
       m.note = m.note || game?.i18n?.localize?.("ACKS-LIB.group.fellInBattle") || "fell in battle";
     }
   }
-  await group.update({ "size.current": (sys.size.current ?? 0) - remove, roster });
+  await group.update({ "system.size.current": (sys.size.current ?? 0) - remove, "system.roster": roster });
   Hooks.callAll(GROUP_HOOKS.CASUALTY, group, remove);
   return remove;
 }
@@ -283,7 +286,7 @@ export async function recall(group, { scene = null } = {}) {
     }
   }
   // A member marked dead on recall is no longer a living body.
-  if (casualties) await group.update({ "size.current": Math.max(0, (group.system.size.current ?? 0) - casualties) });
+  if (casualties) await group.update({ "system.size.current": Math.max(0, (group.system.size.current ?? 0) - casualties) });
   Hooks.callAll(GROUP_HOOKS.RECALLED, group, { recalled, casualties });
   return { recalled, casualties };
 }
@@ -304,7 +307,7 @@ export async function detach(group, memberKey, { folder = null } = {}) {
   const member = group.system.roster.find((m) => m.key === memberKey);
   if (!member || member.state === GROUP_STATE.detached) return null;
 
-  const snap = foundry.utils.deepClone(group.system.prototype?.snapshot ?? {});
+  const snap = foundry.utils.deepClone(group.system.template?.snapshot ?? {});
   if (!snap.type) return null;
   delete snap._id;
   // The member delta overlays the snapshot. `system`/items/name from the delta win.
@@ -320,7 +323,7 @@ export async function detach(group, memberKey, { folder = null } = {}) {
     m.actorUuid = actor.uuid;
     m.tokenUuid = "";
   });
-  await group.update({ "size.current": Math.max(0, (group.system.size.current ?? 0) - 1) });
+  await group.update({ "system.size.current": Math.max(0, (group.system.size.current ?? 0) - 1) });
   Hooks.callAll(GROUP_HOOKS.DETACHED, group, actor, member);
   return actor;
 }
@@ -340,7 +343,7 @@ export async function patchMember(group, key, mutate) {
   const member = roster.find((m) => m.key === key);
   if (!member) return false;
   mutate(member);
-  await group.update({ roster });
+  await group.update({ "system.roster": roster });
   return true;
 }
 

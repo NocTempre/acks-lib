@@ -6,20 +6,20 @@
     <p class="acks-lib-group-warning">{{localize "ACKS-LIB.group.warn.invariant"}}</p>
   {{/if}}
 
-  {{!-- Prototype: the stat block every member copies. Drop an actor to set it. --}}
-  <section class="acks-lib-group-prototype">
-    <header><h3>{{localize "ACKS-LIB.group.prototype"}}</h3></header>
-    {{#if hasPrototype}}
+  {{!-- Template: the stat block every member copies. Drop an actor to set it. --}}
+  <section class="acks-lib-group-template">
+    <header><h3>{{localize "ACKS-LIB.group.template"}}</h3></header>
+    {{#if hasTemplate}}
       <div class="proto-row">
-        <span class="proto-label">{{prototype.label}}</span>
-        <span class="proto-type">{{prototype.type}}</span>
+        <span class="proto-label">{{template.label}}</span>
+        <span class="proto-type">{{template.type}}</span>
         {{#if editable}}
           <button type="button" class="icon" data-action="clearPrototype"
-                  title="{{localize 'ACKS-LIB.group.clearPrototype'}}">✕</button>
+                  title="{{localize 'ACKS-LIB.group.clearTemplate'}}">✕</button>
         {{/if}}
       </div>
     {{else}}
-      <p class="hint">{{localize "ACKS-LIB.group.dropPrototype"}}</p>
+      <p class="hint">{{localize "ACKS-LIB.group.dropTemplate"}}</p>
     {{/if}}
   </section>
 

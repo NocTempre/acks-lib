@@ -21,13 +21,13 @@ export function nextOrdinal(system) {
 }
 
 /**
- * A member's display name: its own name, else the prototype label + ordinal.
- * @param {object} system - a GroupData with `.prototype.label`
+ * A member's display name: its own name, else the template label + ordinal.
+ * @param {object} system - a GroupData with `.template.label`
  * @param {object} member - a roster entry
  */
 export function memberName(system, member) {
   if (member?.name) return member.name;
-  const label = system?.prototype?.label || "Member";
+  const label = system?.template?.label || "Member";
   return `${label} #${member?.ordinal ?? "?"}`;
 }
 

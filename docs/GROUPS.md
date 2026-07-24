@@ -32,8 +32,16 @@ source object: same shape, same merge rules, and Foundry does the merging. No
 parallel override system is invented.
 
 The consequence that shapes everything else: ActorDelta needs a real **world**
-Actor as its base — a compendium entry cannot be one. So `prototype.uuid` points
-at a world actor, minted from `prototype.snapshot` on first deploy if absent.
+Actor as its base — a compendium entry cannot be one. So `template.uuid` points
+at a world actor, minted from `template.snapshot` on first deploy if absent.
+
+> **Why the field is `template`, not `prototype`.** Foundry blocks `prototype`
+> (with `__proto__` and `constructor`) as a forbidden key in dotted-path
+> expansion — a prototype-pollution guard — so `actor.update({"system.prototype.
+> x": …})` silently drops the key and nothing persists. The field is therefore
+> named `template`; the *concept* is still "the prototype every member copies",
+> and the API method is still `setPrototype`. (Found the hard way in live
+> testing: every other `system.*` write worked, only `system.prototype.*` no-oped.)
 
 ### The laziness invariant
 

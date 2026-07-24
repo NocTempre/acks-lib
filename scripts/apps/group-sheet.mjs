@@ -47,13 +47,13 @@ export class GroupSheet extends HandlebarsApplicationMixin(foundry.applications.
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const sys = this.actor.system;
-    const proto = sys.prototype ?? {};
+    const tmpl = sys.template ?? {};
 
     context.isGM = game.user.isGM;
     context.editable = this.isEditable;
     context.system = sys;
-    context.prototype = proto;
-    context.hasPrototype = !!(proto.uuid || proto.label);
+    context.template = tmpl;
+    context.hasTemplate = !!(tmpl.uuid || tmpl.label);
     context.noun = sys.noun || this.#defaultNoun(sys);
 
     context.size = {
@@ -181,15 +181,15 @@ export class GroupSheet extends HandlebarsApplicationMixin(foundry.applications.
     // Dropping a DEAD or DETACHED record is pure bookkeeping — it never touches
     // size.current (those bodies already left the headcount).
     const roster = this.actor.system.toObject().roster.filter((m) => m.key !== key);
-    await this.actor.update({ roster });
+    await this.actor.update({ "system.roster": roster });
     this.render();
   }
 
   static async #onClearPrototype() {
     await this.actor.update({
-      "prototype.uuid": null,
-      "prototype.label": "",
-      "prototype.snapshot": {},
+      "system.template.uuid": null,
+      "system.template.label": "",
+      "system.template.snapshot": {},
     });
     this.render();
   }

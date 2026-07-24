@@ -80,8 +80,14 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
        * `snapshot` is a cached `toObject()` so the group survives the source
        * being deleted, and so a player with no permission to the source still
        * sees what the group is.
+       *
+       * NAMED `template`, NOT `prototype`: Foundry blocks `prototype` (with
+       * `__proto__` and `constructor`) as a forbidden key in dotted-path
+       * expansion — a prototype-pollution guard — so a field named `prototype`
+       * can never be written via `actor.update({"system.prototype.x": …})`; the
+       * key is silently dropped. Verified live against acks 14.0.1.
        */
-      prototype: new SchemaField({
+      template: new SchemaField({
         uuid: new DocumentUUIDField({ required: false, blank: true, nullable: true, initial: null }),
         type: str({ initial: "monster" }), // the base actor's type: monster | character | acks-lib.animal
         label: str(),

@@ -226,11 +226,11 @@ t("nextOrdinal: one past the highest, never reused", () => {
   assert.equal(nextOrdinal({ roster: [{ ordinal: 1 }, { ordinal: 3 }] }), 4);
 });
 
-t("memberName: own name wins, else prototype label + ordinal", () => {
-  const sys = { prototype: { label: "Kobold" } };
+t("memberName: own name wins, else template label + ordinal", () => {
+  const sys = { template: { label: "Kobold" } };
   assert.equal(memberName(sys, { name: "Meepo", ordinal: 4 }), "Meepo");
   assert.equal(memberName(sys, { name: "", ordinal: 7 }), "Kobold #7");
-  assert.equal(memberName({ prototype: {} }, { ordinal: 2 }), "Member #2");
+  assert.equal(memberName({ template: {} }, { ordinal: 2 }), "Member #2");
 });
 
 t("isDerivedEffect: a module-managed effect is derived, an authored one is not", () => {
