@@ -197,14 +197,40 @@ const setPath = (obj, path, value) => {
 const isPlain = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
 /**
+ * A RELATIVE leaf: `{"$add": -1}` adjusts the existing numeric value instead
+ * of replacing it — what a MODIFIER template needs (aging: −1 STR onto
+ * whatever the base actor has). Graceful: a non-numeric existing value just
+ * takes the delta as its value.
+ */
+const isRelative = (v) => isPlain(v) && Object.keys(v).length === 1 && typeof v.$add === "number";
+const applyRelative = (existing, v) => {
+  const base = Number(existing);
+  return (Number.isFinite(base) ? base : 0) + v.$add;
+};
+
+/**
  * Merge one importer-built patch into an accumulating system object. Dotted
  * keys ("details.morale") expand; plain objects merge recursively; scalars and
- * arrays REPLACE (later axes are more specific). Pure — no foundry.utils.
+ * arrays REPLACE (later axes are more specific); `{"$add": n}` leaves adjust.
+ * Pure — no foundry.utils.
  */
 export function mergePatch(target, patch) {
   for (const [k, v] of Object.entries(patch ?? {})) {
     if (k.includes(".")) {
-      setPath(target, k, structuredClone(v));
+      const parts = k.split(".");
+      if (isRelative(v)) {
+        let cur = target;
+        for (const p of parts.slice(0, -1)) {
+          if (typeof cur[p] !== "object" || cur[p] === null || Array.isArray(cur[p])) cur[p] = {};
+          cur = cur[p];
+        }
+        const last = parts[parts.length - 1];
+        cur[last] = applyRelative(cur[last], v);
+      } else {
+        setPath(target, k, structuredClone(v));
+      }
+    } else if (isRelative(v)) {
+      target[k] = applyRelative(target[k], v);
     } else if (isPlain(v) && isPlain(target[k])) {
       mergePatch(target[k], v);
     } else {

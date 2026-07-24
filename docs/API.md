@@ -412,3 +412,9 @@ actor as an option's preset — hand-built families with no import, post-import
 extension, and cross-book merging all ride that one gesture; capturing into
 an otherwise-empty template adopts the source actor's TYPE (mounts and pack
 animals are container roots too).
+
+v0.18: `mergePatch` understands RELATIVE leaves — `{"$add": n}` adjusts the
+existing numeric value instead of replacing it (missing base counts from 0;
+only the exact one-key `{$add: number}` shape is relative). This is the
+primitive MODIFIER templates build on: an aging template's "−1 STR" patch
+composes with whatever base actor it is stacked onto.

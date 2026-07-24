@@ -367,6 +367,19 @@ t("mergePatch: dotted keys expand, objects merge deep, scalars replace", () => {
   assert.deepEqual(out, { aac: { value: 9, mod: 2 }, details: { morale: 3 } });
 });
 
+t("mergePatch: {$add} leaves adjust instead of replacing (modifier templates)", () => {
+  const out = mergePatch(
+    { scores: { str: { value: 13 } }, hp: { value: 20 } },
+    { "scores.str.value": { $add: -1 }, hp: { value: { $add: 5 } }, "scores.con.value": { $add: -2 } }
+  );
+  assert.equal(out.scores.str.value, 12, "dotted relative");
+  assert.equal(out.hp.value, 25, "nested relative");
+  assert.equal(out.scores.con.value, -2, "missing base counts from 0");
+  // A literal object that is NOT an $add leaf still replaces.
+  const rep = mergePatch({ x: { $add: 1, note: "n" } }, { x: { $add: 2, note: "m" } });
+  assert.deepEqual(rep.x, { $add: 2, note: "m" }, "only exact {$add:number} leaves are relative");
+});
+
 t("multi axes: opt-in pins only, options stack in list order", () => {
   const sys = {
     axes: [{
