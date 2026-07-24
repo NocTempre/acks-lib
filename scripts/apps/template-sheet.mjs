@@ -319,7 +319,9 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
     // flags and prototype-token fragments ride the resolved payload; the
     // provenance flag is ours and always wins its own key.
     const prototypeToken = {
-      ...(resolved.art ? { texture: { src: resolved.art } } : {}),
+      ...(resolved.art || resolved.tint
+        ? { texture: { ...(resolved.art ? { src: resolved.art } : {}), ...(resolved.tint ? { tint: resolved.tint } : {}) } }
+        : {}),
       ...(resolved.token ?? {}),
     };
     const created = await Actor.create({

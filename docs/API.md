@@ -424,3 +424,8 @@ v0.19: menu rows may carry a `sub` generation roll ({die, twice?, outcomes:
 `rollMenu` resolves it when the row is picked (picks are row COPIES carrying
 `subResult`) via the exported `resolveSubRoll`. Never recurses — an outcome
 that itself says "roll 1d8+4 twice" stays text for the Judge.
+
+v0.20: `system.base` {merge, flags} is the FIXED foundation applied before
+any axis (the stat rows a template page prints as plain values); options
+gain `tint` (token texture tint — a dragon wears its hide color), applied
+by the builder alongside art and token-size fragments.

@@ -48,6 +48,7 @@ export default class TemplateData extends foundry.abstract.TypeDataModel {
         rollMax: intN(),
         menuBudget: numN(), // "N abilities" cell feeding the menu roll
         art: str(), // per-option art path (distinct art stays linked)
+        tint: str(), // token texture tint ("#b22222") — a dragon's hide color
         merge: new ObjectField(), // system.* patch (engine vocabulary, importer-built)
         items: new ArrayField(new ObjectField()), // embedded-item payloads
         html: str(), // description snippet (lazy tags authored by the importer)
@@ -66,6 +67,15 @@ export default class TemplateData extends foundry.abstract.TypeDataModel {
       output: new SchemaField({
         actorType: str({ initial: "monster" }),
         nameFormat: str(),
+      }),
+
+      /** FIXED foundation every generated actor starts from — the stat rows
+       *  the template page prints as plain values rather than "varies by…"
+       *  (a dragon is always a Monstrosity with lightless vision), applied
+       *  BEFORE any axis patch. `flags` carries the matching sheet extras. */
+      base: new SchemaField({
+        merge: new ObjectField(),
+        flags: new ObjectField(),
       }),
 
       axes: new ArrayField(

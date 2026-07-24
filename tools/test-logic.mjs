@@ -402,6 +402,24 @@ t("mergePatch: {$add} leaves adjust instead of replacing (modifier templates)", 
   assert.deepEqual(rep.x, { $add: 2, note: "m" }, "only exact {$add:number} leaves are relative");
 });
 
+t("base foundation applies first; option tint rides out", () => {
+  const sys = {
+    base: { merge: { details: { alignment: "Chaotic" }, aac: { value: 1 } }, flags: { "acks-monsters": { extras: { types: ["monstrosity"] } } } },
+    axes: [{
+      key: "age", label: "Age", roll: "", derive: { from: "", max: null },
+      options: [{ key: "adult", label: "Adult", merge: { aac: { value: 7 } }, items: [], tint: "" }],
+    }, {
+      key: "type", label: "Type", roll: "", derive: { from: "", max: null },
+      options: [{ key: "red", label: "Red", merge: {}, items: [], tint: "#b22222" }],
+    }],
+  };
+  const r = resolveActor(sys, { age: "adult", type: "red" }, { templateName: "Dragon" });
+  assert.equal(r.system.details.alignment, "Chaotic", "base merge present");
+  assert.equal(r.system.aac.value, 7, "axis overrides base");
+  assert.deepEqual(r.flags["acks-monsters"].extras.types, ["monstrosity"], "base flags ride");
+  assert.equal(r.tint, "#b22222");
+});
+
 t("multi axes: opt-in pins only, options stack in list order", () => {
   const sys = {
     axes: [{

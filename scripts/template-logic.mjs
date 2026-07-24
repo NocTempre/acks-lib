@@ -277,12 +277,14 @@ export function mergePatch(target, patch) {
  * included).
  */
 export function resolveActor(system, choices, { baseName = "", templateName = "" } = {}) {
-  const merged = {};
+  // The template's FIXED foundation first (printed plain rows), then axes.
+  const merged = mergePatch({}, system?.base?.merge);
   const items = [];
   const htmlParts = [];
-  const flags = {};
+  const flags = mergePatch({}, system?.base?.flags);
   const token = {};
   let art = "";
+  let tint = "";
   const chosen = [];
   for (const axis of system?.axes ?? []) {
     // A multi axis contributes EVERY selected option, in option-list order
@@ -296,6 +298,7 @@ export function resolveActor(system, choices, { baseName = "", templateName = ""
       for (const item of option.items ?? []) items.push(structuredClone(item));
       if (option.html) htmlParts.push(option.html);
       if (option.art) art = option.art;
+      if (option.tint) tint = option.tint;
       // Actor-level channels (preset options are complete creatures).
       mergePatch(flags, option.flags);
       mergePatch(token, option.token);
@@ -324,5 +327,5 @@ export function resolveActor(system, choices, { baseName = "", templateName = ""
     const bits = chosen.map((c) => c.option.nameLabel ?? (c.option.label || c.option.key)).filter(Boolean);
     name = bits.length ? `${templateName} (${bits.join(", ")})` : templateName;
   }
-  return { name, system: merged, items, htmlParts, art, flags, token };
+  return { name, system: merged, items, htmlParts, art, tint, flags, token };
 }
