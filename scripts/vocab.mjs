@@ -72,6 +72,12 @@ export const NATURAL_WEAPONS = {
   pincer: { label: "Pincer", damage: "slashing" },
   spine: { label: "Spine", damage: "piercing" },
   weapon: { label: "Weapon", damage: "varies" },
+  // acks-monsters superset — its sheet offers these three beyond the list above.
+  // `sting` coexists with `stinger` (same concept, different key) so monsters
+  // that stored either resolve; folding them would need a data migration.
+  sting: { label: "Sting", damage: "piercing" },
+  feeler: { label: "Feeler", damage: "bludgeoning" },
+  envelopment: { label: "Envelopment", damage: "acidic" },
 };
 
 /** Vision capabilities (MM Overview pp.12–13). */

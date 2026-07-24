@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.13.0
+
+**`NATURAL_WEAPONS` becomes the family superset.** acks-monsters kept its own
+copy of six shared enums — damage / natural-weapon / vision / sense / movement
+types and alignment — value-identical to acks-lib's except that its
+natural-weapons list carried three keys acks-lib lacked: `sting`, `feeler`,
+`envelopment`. Those three are added here so acks-lib is the single source of
+truth acks-monsters can consume without losing anything. `sting` coexists with
+the existing `stinger` (same concept, different key that predates the fold);
+collapsing them would need a data migration, so both remain and any monster
+that stored either resolves. Purely additive — existing consumers are
+unaffected.
+
 ## 0.12.0
 
 **Shared actor-read accessors (`actor-read.mjs`).** The small graceful-degradation
