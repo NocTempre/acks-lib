@@ -288,3 +288,79 @@ them today; treat a change here as cheap until magic lands.
 Semver + `apiVersion`. Additive enum/field growth is a minor bump; a shape
 change to an existing field is a major bump with coordinated consumer updates.
 Consumers pin `compatibility.minimum` on their `requires acks-lib`.
+
+## Patch layer (v0.10) — what the library adds to the system
+
+The acks system is an **unmodifiable reference**. Anything the family needs
+that it does not provide lands here, once. A module patches core directly only
+for behaviour unique to its own domain (e.g. acks-abilities owns the ability
+roll path); everything shared is here.
+
+### `acksCompatStubs()` / `savingThrowFields()`
+
+`AcksActor` runs for every actor and touches `isNew`, `thac0`, `initiative`,
+`movement` and `saves.implements`/`.wand` unguarded — the setup-time
+`updateWeightsLanguages` sweep reads them on *every actor in the world*, so one
+module actor with an incomplete schema aborts the system's own ready work.
+
+Spread `acksCompatStubs()` into any module actor sub-type's `defineSchema()`.
+Four copies of this existed across acks-domains, acks-formation and
+acks-henchmen before it moved here; a system patch four modules maintain
+separately is one system update away from three of them being wrong.
+
+`savingThrowFields()` is separate, for a sub-type that genuinely saves — same
+field paths and initials as the system's own `SavingThrowsTemplate`.
+
+### `acks-lib.animal` — the animal/monster bridge
+
+An animal is a monster you can also buy, load and ride. `AnimalData` mirrors the
+monster's field paths (`hp`, `aac`, `thac0`, `movement`, `saves`,
+`details.morale`) **on purpose**, so anything already reading a monster reads an
+animal unchanged, and adds the shop-and-stable half under `system.animal`:
+`species`, `training`, `capacity6`, `unencumbered6`, `mountable`, `cost`.
+Loads are in `weight6` (sixths of a stone), the family's only weight unit.
+
+Registered at `init` into `CONFIG.Actor.dataModels`; declared in `module.json`
+`documentTypes`.
+
+Animals use the **system's own monster sheet**, registered for the type at
+`ready`. The library ships no sheet: the schema mirrors the monster's field
+paths precisely so the monster sheet renders an animal unchanged, and a second
+sheet over the same fields would just be a second thing to keep in step. The
+schema therefore also carries the four fields that sheet reads unguarded
+(`pattern`, `counter`, `spells.enabled`, `details.treasure`), for the same
+reason the compat stubs exist.
+
+### `mount` — who is riding what
+
+```js
+const { mountOf, riderOf, isMounted, mountActor, dismount, unseat } = acksLib.mount;
+```
+
+The binding is **symmetric** — stored on both actors — because a combat hook
+holds the rider and an encumbrance calculation holds the animal, and searching
+every actor for the other end on each read is not viable. Both readers verify
+the far end still agrees, so a half-broken pair reads as "not mounted" rather
+than throwing. Hooks: `acksLibMounted`, `acksLibDismounted`. A mount need not be
+an `acks-lib.animal` — in ACKS plenty of people ride monsters.
+
+This exists because acks-equipment's mounted-combat overlay was blocked on
+there being any mounted state in the system at all.
+
+### `itemModel` — the shared item baseline
+
+The system declares `cost`/`weight6` per type, `equipped` separately on `weapon`
+and `armor`, and `favorite`/`save`/`pattern` across overlapping subsets — so
+every module re-derived "is this physical / can it be equipped / what does it
+weigh" with its own type list, and they disagreed.
+
+```js
+const { isPhysical, isEquippable, isEquipped, weight6Of, weightStoneOf,
+        physicalItems, equippedItems, setEquipped, STONE } = acksLib.itemModel;
+```
+
+These read the **schema**, not a type name (`"cost" in item.system`), so they
+keep working when the system adds a physical type this library never heard of.
+`weight6Of` multiplies by quantity only where a quantity field exists.
+`physicalFields()` / `equippableFields()` build a module sub-type's own schema
+to match the system exactly rather than approximately.

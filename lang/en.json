@@ -1,3 +1,14 @@
 {
-  "ACKS-LIB.Title": "ACKS II — Library"
+  "ACKS-LIB.Title": "ACKS II — Library",
+  "TYPES.Actor.acks-lib.animal": "Animal",
+  "ACKS-LIB.animal.training.untrained": "Untrained",
+  "ACKS-LIB.animal.training.riding": "Riding",
+  "ACKS-LIB.animal.training.draft": "Draft",
+  "ACKS-LIB.animal.training.war": "War",
+  "ACKS-LIB.animal.training.hunting": "Hunting",
+  "ACKS-LIB.animal.training.herding": "Herding",
+  "ACKS-LIB.mount.selfMount": "An actor cannot ride itself.",
+  "ACKS-LIB.mount.notOwner": "You need ownership of both the rider and the mount.",
+  "ACKS-LIB.mount.notMountable": "{name} is not marked as mountable — allowed anyway, but check with your Judge.",
+  "ACKS-LIB.sheet.animal": "ACKS Animal"
 }

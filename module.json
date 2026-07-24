@@ -2,7 +2,7 @@
   "id": "acks-lib",
   "title": "ACKS II — Library",
   "description": "Shared primitives, effect vocabulary, and contracts for the ACKS II module family.",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "authors": [
     {
       "name": "NocTempre"
@@ -47,5 +47,14 @@
       "path": "lang/en.json"
     }
   ],
-  "packs": []
+  "packs": [],
+  "documentTypes": {
+    "Actor": {
+      "animal": {
+        "htmlFields": [
+          "details.biography"
+        ]
+      }
+    }
+  }
 }
