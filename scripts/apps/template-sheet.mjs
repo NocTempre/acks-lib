@@ -15,7 +15,7 @@
  * "derived from Dragon (Adult · Wyvern)".
  */
 import { MODULE_ID } from "../constants.mjs";
-import { chooseAxes, resolveActor, rollMenu } from "../template-logic.mjs";
+import { chooseAxes, mergePatch, resolveActor, rollMenu } from "../template-logic.mjs";
 import { hitDiceOrLevel } from "../actor-read.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
@@ -31,6 +31,11 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
     actions: {
       generate: TemplateSheet.#onGenerate,
       clearBase: TemplateSheet.#onClearBase,
+      editToggle: TemplateSheet.#onEditToggle,
+      addAxis: TemplateSheet.#onAddAxis,
+      deleteAxis: TemplateSheet.#onDeleteAxis,
+      addOption: TemplateSheet.#onAddOption,
+      deleteOption: TemplateSheet.#onDeleteOption,
     },
   };
 
@@ -42,6 +47,8 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
   #pins = {};
   #baseUuid = null;
   #baseName = "";
+  /** Edit mode: structure editing + capture-from-actor (GM extensibility). */
+  #editing = false;
 
   /** @override */
   async _prepareContext(options) {
@@ -52,9 +59,11 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
     context.isStub = sys.isStub;
     context.base = this.#baseUuid ? { uuid: this.#baseUuid, name: this.#baseName } : null;
 
+    context.editing = this.#editing && this.isEditable;
     context.axes = (sys.axes ?? []).map((axis) => ({
       key: axis.key,
       label: axis.label || axis.key,
+      multi: !!axis.multi,
       rollLabel: axis.roll
         ? game.i18n.format("ACKS-LIB.template.rollDie", { die: axis.roll })
         : game.i18n.localize("ACKS-LIB.template.rollUniform"),
@@ -63,7 +72,10 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
       options: (axis.options ?? []).map((o) => ({
         key: o.key,
         label: o.label || o.key,
-        selected: (this.#pins[axis.key] ?? "") === o.key,
+        selected: axis.multi
+          ? (this.#pins[axis.key] ?? []).includes?.(o.key)
+          : (this.#pins[axis.key] ?? "") === o.key,
+        empty: !Object.keys(o.merge ?? {}).length && !(o.items ?? []).length,
       })),
     }));
 
@@ -91,6 +103,16 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
         else delete this.#pins[key];
       });
     }
+    // Multi-select axes pin an ARRAY of checked options (stacked add-ons).
+    for (const box of this.element.querySelectorAll("input.acks-lib-template-multi")) {
+      box.addEventListener("change", (ev) => {
+        const key = ev.currentTarget.dataset.axis;
+        const picked = [...this.element.querySelectorAll(`input.acks-lib-template-multi[data-axis="${key}"]:checked`)]
+          .map((b) => b.value);
+        if (picked.length) this.#pins[key] = picked;
+        else delete this.#pins[key];
+      });
+    }
     if (!this.isEditable) return;
     new foundry.applications.ux.DragDrop.implementation({
       permissions: { drop: () => this.isEditable },
@@ -103,15 +125,127 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
     if (data?.type !== "Actor") return;
     const source = await foundry.utils.getDocumentClass("Actor").fromDropData(data);
     if (!source || source.uuid === this.actor.uuid) return;
+    // In edit mode, dropping onto an OPTION row CAPTURES that actor as the
+    // option's preset — the extensibility gesture: build/adjust an exemplar
+    // actor however you like, then snapshot it as a variant.
+    const optionRow = this.#editing ? event.target?.closest?.("[data-axis-key][data-option-key]") : null;
+    if (optionRow) {
+      await this.#captureOption(optionRow.dataset.axisKey, optionRow.dataset.optionKey, source);
+      return;
+    }
     this.#baseUuid = source.uuid;
     this.#baseName = source.name;
     ui.notifications.info(game.i18n.format("ACKS-LIB.template.baseSet", { name: source.name }));
     this.render();
   }
 
+  /** Snapshot an actor's whole sheet-facing state into one option's patches. */
+  async #captureOption(axisKey, optionKey, source) {
+    const axes = this.actor.system.toObject().axes;
+    const option = axes.find((a) => a.key === axisKey)?.options?.find((o) => o.key === optionKey);
+    if (!option) return;
+    const flags = foundry.utils.deepClone(source.flags ?? {});
+    delete flags.core;
+    delete flags[MODULE_ID]?.generated; // a captured generation must not chain provenance
+    const token = source.prototypeToken
+      ? { width: source.prototypeToken.width, height: source.prototypeToken.height }
+      : {};
+    Object.assign(option, {
+      merge: source.system.toObject(),
+      items: source.items.map((i) => i.toObject()),
+      flags,
+      token,
+      art: source.img ?? "",
+    });
+    // First capture into an otherwise-empty template adopts the source's TYPE:
+    // capture a warhorse and the template generates `acks-lib.animal` actors,
+    // capture a monster and it generates monsters. (Mounts and pack animals
+    // are container roots too.)
+    const hasOther = axes.some((a) =>
+      a.options.some((o) => o !== option && (Object.keys(o.merge ?? {}).length || (o.items ?? []).length))
+    );
+    const update = { "system.axes": axes };
+    if (!hasOther) update["system.output.actorType"] = source.type;
+    await this.actor.update(update);
+    ui.notifications.info(game.i18n.format("ACKS-LIB.template.info.captured", { name: source.name, option: option.label || optionKey }));
+    this.render();
+  }
+
   static async #onClearBase() {
     this.#baseUuid = null;
     this.#baseName = "";
+    this.render();
+  }
+
+  /* --- structure editing (GM extensibility: new families without import) --- */
+
+  static #onEditToggle() {
+    this.#editing = !this.#editing;
+    this.render();
+  }
+
+  /** One-line text prompt via DialogV2; null on cancel. */
+  static async #prompt(title, label, initial = "") {
+    const esc = foundry.utils.escapeHTML;
+    return foundry.applications.api.DialogV2.prompt({
+      window: { title },
+      content: `<label>${esc(label)} <input type="text" name="value" value="${esc(initial)}" autofocus /></label>`,
+      ok: { callback: (event, button) => button.form.elements.value.value.trim() },
+      rejectClose: false,
+    });
+  }
+
+  static async #onAddAxis() {
+    const label = await TemplateSheet.#prompt(
+      game.i18n.localize("ACKS-LIB.template.addAxis"),
+      game.i18n.localize("ACKS-LIB.template.axisName")
+    );
+    if (!label) return;
+    const key = label.replace(/[^A-Za-z0-9]+/g, " ").trim().split(" ")
+      .map((w, i) => (i ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase())).join("");
+    const axes = this.actor.system.toObject().axes;
+    if (axes.some((a) => a.key === key)) return ui.notifications.warn(game.i18n.localize("ACKS-LIB.template.warn.dupKey"));
+    axes.push({ key, label, roll: "", derive: { from: "", max: null }, options: [] });
+    await this.actor.update({ "system.axes": axes });
+    this.render();
+  }
+
+  static async #onDeleteAxis(event, target) {
+    const key = target.closest("[data-axis-key]")?.dataset.axisKey;
+    const axes = this.actor.system.toObject().axes.filter((a) => a.key !== key);
+    await this.actor.update({ "system.axes": axes });
+    this.render();
+  }
+
+  static async #onAddOption(event, target) {
+    const axisKey = target.closest("[data-axis-key]")?.dataset.axisKey;
+    const label = await TemplateSheet.#prompt(
+      game.i18n.localize("ACKS-LIB.template.addOption"),
+      game.i18n.localize("ACKS-LIB.template.optionName")
+    );
+    if (!label) return;
+    const key = label.replace(/[^A-Za-z0-9]+/g, " ").trim().split(" ")
+      .map((w, i) => (i ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase())).join("");
+    const axes = this.actor.system.toObject().axes;
+    const axis = axes.find((a) => a.key === axisKey);
+    if (!axis) return;
+    if (axis.options.some((o) => o.key === key)) return ui.notifications.warn(game.i18n.localize("ACKS-LIB.template.warn.dupKey"));
+    axis.options.push({
+      key, label, nameLabel: null, rollMin: null, rollMax: null, menuBudget: null,
+      art: "", merge: {}, items: [], html: "", flags: {}, token: {},
+    });
+    await this.actor.update({ "system.axes": axes });
+    this.render();
+  }
+
+  static async #onDeleteOption(event, target) {
+    const row = target.closest("[data-axis-key][data-option-key]");
+    if (!row) return;
+    const axes = this.actor.system.toObject().axes;
+    const axis = axes.find((a) => a.key === row.dataset.axisKey);
+    if (!axis) return;
+    axis.options = axis.options.filter((o) => o.key !== row.dataset.optionKey);
+    await this.actor.update({ "system.axes": axes });
     this.render();
   }
 
@@ -132,6 +266,25 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
 
     const { choices, log } = chooseAxes(sys, { pinned: this.#pins, baseValues });
     const resolved = resolveActor(sys, choices, { baseName: base?.name ?? "", templateName: this.actor.name });
+
+    // STACKING: a dropped base actor SEEDS generation — its full system,
+    // items, and flags first, the template's patches layered on top. That is
+    // what makes templates compose: generate a Goblin Chieftain, drop it on
+    // Vampire Thrall, and the thrall keeps whatever the thrall's own rows do
+    // not override.
+    if (base) {
+      const seeded = base.system.toObject();
+      mergePatch(seeded, resolved.system);
+      resolved.system = seeded;
+      resolved.items = [...base.items.map((i) => i.toObject()), ...resolved.items];
+      const baseFlags = foundry.utils.deepClone(base.flags ?? {});
+      delete baseFlags.core;
+      if (baseFlags[MODULE_ID]) delete baseFlags[MODULE_ID].generated;
+      const stackedFlags = baseFlags;
+      mergePatch(stackedFlags, resolved.flags ?? {});
+      resolved.flags = stackedFlags;
+      if (!resolved.art && base.img) resolved.art = base.img;
+    }
 
     // The rolled ability menu: budget printed on the budget axis's chosen row.
     let menuPicks = [];
@@ -156,15 +309,25 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
       system.details = { ...(system.details ?? {}), biography: `${system.details?.biography ?? ""}${biography}` };
     }
 
+    // Actor-level channels from preset options (family variants): sheet-extras
+    // flags and prototype-token fragments ride the resolved payload; the
+    // provenance flag is ours and always wins its own key.
+    const prototypeToken = {
+      ...(resolved.art ? { texture: { src: resolved.art } } : {}),
+      ...(resolved.token ?? {}),
+    };
     const created = await Actor.create({
       name: resolved.name || this.actor.name,
       type,
       folder: this.actor.folder?.id ?? null,
-      ...(resolved.art ? { img: resolved.art, prototypeToken: { texture: { src: resolved.art } } } : {}),
+      ...(resolved.art ? { img: resolved.art } : {}),
+      ...(Object.keys(prototypeToken).length ? { prototypeToken } : {}),
       system,
       items: resolved.items,
       flags: {
+        ...(resolved.flags ?? {}),
         [MODULE_ID]: {
+          ...(resolved.flags?.[MODULE_ID] ?? {}),
           generated: {
             templateUuid: this.actor.uuid,
             choices,

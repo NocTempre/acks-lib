@@ -367,6 +367,50 @@ t("mergePatch: dotted keys expand, objects merge deep, scalars replace", () => {
   assert.deepEqual(out, { aac: { value: 9, mod: 2 }, details: { morale: 3 } });
 });
 
+t("multi axes: opt-in pins only, options stack in list order", () => {
+  const sys = {
+    axes: [{
+      key: "addons", label: "Add-ons", roll: "", multi: true,
+      derive: { from: "", max: null },
+      options: [
+        { key: "a", label: "A", merge: { x: 1, order: "a" }, items: [{ name: "A" }] },
+        { key: "b", label: "B", merge: { y: 2, order: "b" }, items: [{ name: "B" }] },
+      ],
+    }],
+  };
+  const rng = seededRng(5);
+  // Unpinned multi axes contribute nothing — never rolled.
+  assert.deepEqual(chooseAxes(sys, { rng }).choices, {});
+  const both = chooseAxes(sys, { pinned: { addons: ["b", "a", "ghost"] }, rng });
+  assert.deepEqual(both.choices, { addons: ["b", "a"] }, "validated against options");
+  const r = resolveActor(sys, both.choices, { templateName: "T" });
+  assert.equal(r.system.x, 1);
+  assert.equal(r.system.y, 2);
+  assert.equal(r.system.order, "b", "applied in option-list order, later wins");
+  assert.deepEqual(r.items.map((i) => i.name), ["A", "B"]);
+});
+
+t("resolveActor carries preset flags and token fragments", () => {
+  const fam = {
+    output: { nameFormat: "{variant}" },
+    axes: [{
+      key: "variant", label: "Variant", roll: "",
+      derive: { from: "", max: null },
+      options: [{
+        key: "lion", label: "Lion", nameLabel: "Cat, Lion",
+        merge: { aac: { value: 4 } }, items: [],
+        flags: { "acks-monsters": { extras: { classification: "Animal" } }, "acks-content": { cookbook: { id: "mm.catLion" } } },
+        token: { width: 2, height: 1 },
+      }],
+    }],
+  };
+  const r = resolveActor(fam, { variant: "lion" }, { templateName: "Cat" });
+  assert.equal(r.name, "Cat, Lion");
+  assert.equal(r.flags["acks-monsters"].extras.classification, "Animal");
+  assert.equal(r.flags["acks-content"].cookbook.id, "mm.catLion");
+  assert.deepEqual(r.token, { width: 2, height: 1 });
+});
+
 t("resolveActor merges axis rows then N-D cells, composes the name", () => {
   const r = resolveActor(TEMPLATE_SYS, { tier: "major", element: "fire" }, { templateName: "Elemental" });
   assert.equal(r.name, "Major Fire Elemental");

@@ -40,7 +40,10 @@ export default class TemplateData extends foundry.abstract.TypeDataModel {
       new SchemaField({
         key: str(), // stable slug of the printed row/column label
         label: str(), // the printed label ("Adult (51-75 years)")
-        nameLabel: str(), // short piece for generated names ("Adult")
+        // Short piece for generated names ("Adult"). NULL falls back to the
+        // label; the EMPTY STRING means "contributes nothing" — a Standard
+        // role must not suffix every generated name with "Standard".
+        nameLabel: new StringField({ required: false, nullable: true, blank: true, initial: null }),
         rollMin: intN(), // printed die band, when the page prints one
         rollMax: intN(),
         menuBudget: numN(), // "N abilities" cell feeding the menu roll
@@ -48,6 +51,11 @@ export default class TemplateData extends foundry.abstract.TypeDataModel {
         merge: new ObjectField(), // system.* patch (engine vocabulary, importer-built)
         items: new ArrayField(new ObjectField()), // embedded-item payloads
         html: str(), // description snippet (lazy tags authored by the importer)
+        // Actor-level channels for PRESET options (a family variant is a
+        // complete creature): flags (e.g. the Full Monster Sheet extras the
+        // importer computed) and prototype-token fragments (size, art).
+        flags: new ObjectField(),
+        token: new ObjectField(),
       });
 
     return {
@@ -65,6 +73,11 @@ export default class TemplateData extends foundry.abstract.TypeDataModel {
           key: str(),
           label: str(),
           roll: str(), // the book's die ("1d100"); "" → uniform
+          // MULTI-SELECT axis: several options may apply cumulatively
+          // (add-ons — special troops, stacked modifiers) instead of every
+          // combination becoming its own option. Defaults to none selected;
+          // multi axes never roll.
+          multi: new foundry.data.fields.BooleanField({ required: true, initial: false }),
           // Read this choice off a dropped base actor: `from` names a base
           // value ("hd"), `max` caps it (a thrall caps at 8 HD).
           derive: new SchemaField({ from: str(), max: numN() }),

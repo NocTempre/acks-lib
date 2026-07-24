@@ -69,5 +69,17 @@
   "ACKS-LIB.template.stubNote": "This template has no materialized tables yet — import it from a connected book first.",
   "ACKS-LIB.template.warn.stub": "This template is a stub: connect the book and re-import before generating.",
   "ACKS-LIB.template.warn.rejected": "The system rejected the generated actor (see console).",
-  "ACKS-LIB.template.info.generated": "Generated {name}."
+  "ACKS-LIB.template.info.generated": "Generated {name}.",
+  "ACKS-LIB.template.edit": "Edit structure",
+  "ACKS-LIB.template.editDone": "Done editing",
+  "ACKS-LIB.template.addAxis": "Add axis",
+  "ACKS-LIB.template.axisName": "Axis name",
+  "ACKS-LIB.template.deleteAxis": "Delete axis",
+  "ACKS-LIB.template.addOption": "Add option",
+  "ACKS-LIB.template.optionName": "Option name",
+  "ACKS-LIB.template.deleteOption": "Delete option",
+  "ACKS-LIB.template.emptyOption": "empty — drop an actor here",
+  "ACKS-LIB.template.captureHint": "Drop an actor on this row to capture it as this option.",
+  "ACKS-LIB.template.warn.dupKey": "That name is already used here.",
+  "ACKS-LIB.template.info.captured": "Captured {name} into option {option}."
 }

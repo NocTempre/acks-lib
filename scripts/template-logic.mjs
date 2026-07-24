@@ -112,6 +112,17 @@ export function chooseAxes(system, { pinned = {}, baseValues = {}, rng = Math.ra
   for (const axis of system?.axes ?? []) {
     const options = axis.options ?? [];
     if (!options.length) continue;
+    // Multi-select axes are OPT-IN add-ons: apply exactly what was pinned
+    // (validated), never roll a default.
+    if (axis.multi) {
+      const pins = Array.isArray(pinned[axis.key]) ? pinned[axis.key] : pinned[axis.key] != null ? [pinned[axis.key]] : [];
+      const keys = pins.filter((k) => options.some((o) => o.key === k));
+      if (keys.length) {
+        choices[axis.key] = keys;
+        log.push({ axis: axis.key, option: keys.join("+"), source: "pinned" });
+      }
+      continue;
+    }
     let option = null;
     let source = null;
     let roll = null;
@@ -205,25 +216,38 @@ export function mergePatch(target, patch) {
 
 /**
  * Resolve chosen options into one engine-ready actor payload:
- * `{name, system, items, htmlParts, art}`. Axis merges apply in axis order,
- * then the N-dimensional `cells` (keyed by their axes' chosen option keys
- * joined with "|"), so a 2-axis cell always outranks the 1-axis rows it
- * refines — the dragon's per-age-per-form damage over the age row's baseline.
+ * `{name, system, items, htmlParts, art, flags, token}`. Axis merges apply in
+ * axis order, then the N-dimensional `cells` (keyed by their axes' chosen
+ * option keys joined with "|"), so a 2-axis cell always outranks the 1-axis
+ * rows it refines — the dragon's per-age-per-form damage over the age row's
+ * baseline. `flags`/`token` are the actor-level channels preset options carry
+ * (a family variant is a complete creature, sheet extras and token size
+ * included).
  */
 export function resolveActor(system, choices, { baseName = "", templateName = "" } = {}) {
   const merged = {};
   const items = [];
   const htmlParts = [];
+  const flags = {};
+  const token = {};
   let art = "";
   const chosen = [];
   for (const axis of system?.axes ?? []) {
-    const option = (axis.options ?? []).find((o) => o.key === choices?.[axis.key]);
-    if (!option) continue;
-    chosen.push({ axis, option });
-    mergePatch(merged, option.merge);
-    for (const item of option.items ?? []) items.push(structuredClone(item));
-    if (option.html) htmlParts.push(option.html);
-    if (option.art) art = option.art;
+    // A multi axis contributes EVERY selected option, in option-list order
+    // (stacked add-ons); a single axis contributes exactly one.
+    const raw = choices?.[axis.key];
+    const keys = Array.isArray(raw) ? raw : raw != null ? [raw] : [];
+    const picked = (axis.options ?? []).filter((o) => keys.includes(o.key));
+    for (const option of picked) {
+      chosen.push({ axis, option });
+      mergePatch(merged, option.merge);
+      for (const item of option.items ?? []) items.push(structuredClone(item));
+      if (option.html) htmlParts.push(option.html);
+      if (option.art) art = option.art;
+      // Actor-level channels (preset options are complete creatures).
+      mergePatch(flags, option.flags);
+      mergePatch(token, option.token);
+    }
   }
   for (const cell of system?.cells ?? []) {
     const key = (cell.by ?? []).map((axisKey) => choices?.[axisKey] ?? "").join("|");
@@ -237,13 +261,16 @@ export function resolveActor(system, choices, { baseName = "", templateName = ""
     name = name.replace(/\{(\w+)\}/g, (_, key) => {
       if (key === "base") return baseName || templateName;
       const c = chosen.find((x) => x.axis.key === key);
-      return c ? c.option.nameLabel || c.option.label || c.option.key : "";
+      if (!c) return "";
+      // null nameLabel falls back to the label; the EMPTY STRING is an
+      // explicit "no name piece" (a Standard role stays out of the name).
+      return c.option.nameLabel ?? (c.option.label || c.option.key);
     });
     name = name.replace(/\s+/g, " ").trim();
   }
   if (!name) {
-    const bits = chosen.map((c) => c.option.nameLabel || c.option.label || c.option.key).filter(Boolean);
+    const bits = chosen.map((c) => c.option.nameLabel ?? (c.option.label || c.option.key)).filter(Boolean);
     name = bits.length ? `${templateName} (${bits.join(", ")})` : templateName;
   }
-  return { name, system: merged, items, htmlParts, art };
+  return { name, system: merged, items, htmlParts, art, flags, token };
 }

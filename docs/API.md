@@ -398,3 +398,17 @@ per axis defaulting to "Roll", a drop zone for the base actor, and Generate;
 pins and the base are per-window UI state, never document data. Generated
 actors carry `flags["acks-lib"].generated = {templateUuid, choices, log, menu}`
 as provenance.
+
+v0.17 additions: options carry actor-level `flags`/`token` channels (a family
+variant is a complete creature — sheet extras and token size included) and a
+NULLABLE `nameLabel` (null → label; empty string → contributes nothing, so a
+Standard role stays out of generated names). Axes may set `multi: true` —
+opt-in, never rolled, every checked option applies in list order (stacked
+add-ons instead of a combinatorial option list). A dropped base actor now
+SEEDS generation (full system/items/flags, patches layered on top), so
+templates COMPOSE: generate a Goblin Chieftain, drop it on Vampire Thrall.
+The sheet's edit mode adds/removes axes and options and CAPTURES a dropped
+actor as an option's preset — hand-built families with no import, post-import
+extension, and cross-book merging all ride that one gesture; capturing into
+an otherwise-empty template adopts the source actor's TYPE (mounts and pack
+animals are container roots too).

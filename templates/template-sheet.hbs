@@ -28,15 +28,27 @@
   {{#if axes.length}}
     <section class="acks-lib-template-axes">
       {{#each axes}}
-        <label class="axis-row">
-          <span class="axis-label">{{label}}</span>
-          <select class="acks-lib-template-pin" data-axis="{{key}}">
-            <option value="">{{#if derived}}{{localize "ACKS-LIB.template.derived"}}{{else}}{{rollLabel}}{{/if}}</option>
-            {{#each options}}
-              <option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-            {{/each}}
-          </select>
-        </label>
+        {{#if multi}}
+          <div class="axis-row axis-multi">
+            <span class="axis-label">{{label}}</span>
+            <div class="axis-multi-options">
+              {{#each options}}
+                <label><input type="checkbox" class="acks-lib-template-multi" data-axis="{{../key}}"
+                              value="{{key}}" {{#if selected}}checked{{/if}} /> {{label}}</label>
+              {{/each}}
+            </div>
+          </div>
+        {{else}}
+          <label class="axis-row">
+            <span class="axis-label">{{label}}</span>
+            <select class="acks-lib-template-pin" data-axis="{{key}}">
+              <option value="">{{#if derived}}{{localize "ACKS-LIB.template.derived"}}{{else}}{{rollLabel}}{{/if}}</option>
+              {{#each options}}
+                <option value="{{key}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+              {{/each}}
+            </select>
+          </label>
+        {{/if}}
       {{/each}}
     </section>
   {{/if}}
@@ -50,6 +62,37 @@
       <button type="button" data-action="generate" {{#if isStub}}disabled{{/if}}>
         <i class="fas fa-dice-d20"></i> {{localize "ACKS-LIB.template.generate"}}
       </button>
+      <button type="button" class="acks-lib-template-edit-toggle" data-action="editToggle">
+        <i class="fas fa-wrench"></i> {{#if editing}}{{localize "ACKS-LIB.template.editDone"}}{{else}}{{localize "ACKS-LIB.template.edit"}}{{/if}}
+      </button>
+    </section>
+  {{/if}}
+
+  {{!-- Structure editing: add/remove axes and options; DROP AN ACTOR ON AN
+        OPTION ROW to capture it as that option's preset (new families and
+        post-import additions, no import required). --}}
+  {{#if editing}}
+    <section class="acks-lib-template-editor">
+      {{#each axes}}
+        <div class="editor-axis" data-axis-key="{{key}}">
+          <header>
+            <strong>{{label}}</strong>
+            <a data-action="addOption" data-tooltip="{{localize 'ACKS-LIB.template.addOption'}}"><i class="fas fa-plus"></i></a>
+            <a data-action="deleteAxis" data-tooltip="{{localize 'ACKS-LIB.template.deleteAxis'}}"><i class="fas fa-trash"></i></a>
+          </header>
+          <ul>
+            {{#each options}}
+              <li data-axis-key="{{../key}}" data-option-key="{{key}}" class="editor-option{{#if empty}} is-empty{{/if}}"
+                  data-tooltip="{{localize 'ACKS-LIB.template.captureHint'}}">
+                <span>{{label}}</span>
+                {{#if empty}}<em class="hint">{{localize "ACKS-LIB.template.emptyOption"}}</em>{{/if}}
+                <a data-action="deleteOption" data-tooltip="{{localize 'ACKS-LIB.template.deleteOption'}}"><i class="fas fa-trash"></i></a>
+              </li>
+            {{/each}}
+          </ul>
+        </div>
+      {{/each}}
+      <button type="button" data-action="addAxis"><i class="fas fa-plus"></i> {{localize "ACKS-LIB.template.addAxis"}}</button>
     </section>
   {{/if}}
 
