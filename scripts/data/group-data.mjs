@@ -157,6 +157,14 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
         wageUnit: str({ initial: "month" }),
         employerUuid: str(),
         locationUuid: str(),
+        // The commanding officer (RR 171): a lone leveled actor, not a stack —
+        // an officer is a unique individual who COMMANDS the troop stacks. The
+        // troops addendum keeps only the skirmish-scale bit here: the uuid and a
+        // cached morale modifier the officer confers, so `commandMorale` is
+        // computable without loading the officer. Domain-scale command (how many
+        // units an officer leads across an army) is acks-troops, not here.
+        officerUuid: str(),
+        officerMoraleBonus: int(0, { min: 0, max: 4 }),
         // Unit morale / loyalty (mercenary side). Same signed range the system
         // uses for a monster's morale and a retainer's loyalty.
         morale: int(0, { min: -6, max: 4 }),
@@ -272,5 +280,12 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
    */
   get invariantHolds() {
     return this.stacks.every((s) => (s.size?.current ?? 0) >= this.livingRecordedOf(s).length);
+  }
+
+  /** Unit morale including the commanding officer's RR 171 modifier (skirmish
+   *  scale). Clamped to the same signed band unit morale uses. */
+  get commandMorale() {
+    const m = (this.unit?.morale ?? 0) + (this.unit?.officerMoraleBonus ?? 0);
+    return Math.max(-6, Math.min(4, m));
   }
 }

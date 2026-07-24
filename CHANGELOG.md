@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.22.0
+
+**Group troops addendum: a commanding officer.** `unit` gains `officerUuid` (the
+commanding officer's lone actor — an officer is a unique leveled individual who
+COMMANDS the troop stacks, not a stack himself) and a cached `officerMoraleBonus`
+(the RR 171 modifier), and `GroupData` gains a `commandMorale` getter (unit
+morale + the officer's bonus, clamped). This is the skirmish-scale slice only;
+domain-scale command and Battles integration remain acks-troops. acks-henchmen
+consumes this to hire a whole unit from the market as one group (troops → stacks,
+officer → linked commander).
+
 ## 0.21.0
 
 **A group is now MANY stacks, not one prototype.** `GroupData` held a single
