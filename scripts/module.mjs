@@ -37,13 +37,17 @@ import { resolveLevelValue } from "./vocab.mjs";
 import { acksCompatStubs, savingThrowFields } from "./actor-compat.mjs";
 import AnimalData from "./data/animal-data.mjs";
 import GroupData from "./data/group-data.mjs";
+import TemplateData from "./data/template-data.mjs";
 import * as groups from "./group.mjs";
+import * as templateLogic from "./template-logic.mjs";
 import { GroupSheet } from "./apps/group-sheet.mjs";
+import { TemplateSheet } from "./apps/template-sheet.mjs";
 import { registerMountCleanup } from "./mount.mjs";
 
 /** The actor sub-types this library adds to the system. */
 export const ANIMAL_TYPE = `${MODULE_ID}.animal`;
 export const GROUP_TYPE = `${MODULE_ID}.group`;
+export const TEMPLATE_TYPE = `${MODULE_ID}.template`;
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
@@ -63,6 +67,10 @@ const localImpl = Object.freeze({
   GroupData,
   GROUP_TYPE,
   groups,
+  /** The `acks-lib.template` generator actor: model + pure roll/resolve. */
+  TemplateData,
+  TEMPLATE_TYPE,
+  templateLogic,
   /** Mount binding: mountOf / riderOf / isMounted / mountActor / dismount / unseat. */
   mount,
   /** Shared item baseline: isPhysical / isEquippable / weight6Of / … */
@@ -118,7 +126,8 @@ Hooks.once("init", () => {
 Hooks.once("setup", () => {
   CONFIG.Actor.dataModels[ANIMAL_TYPE] = AnimalData;
   CONFIG.Actor.dataModels[GROUP_TYPE] = GroupData;
-  console.log(`${MODULE_ID} | ${ANIMAL_TYPE}, ${GROUP_TYPE} data models registered.`);
+  CONFIG.Actor.dataModels[TEMPLATE_TYPE] = TemplateData;
+  console.log(`${MODULE_ID} | ${ANIMAL_TYPE}, ${GROUP_TYPE}, ${TEMPLATE_TYPE} data models registered.`);
 });
 
 /**
@@ -162,4 +171,13 @@ Hooks.once("ready", () => {
     label: "ACKS-LIB.sheet.group",
   });
   console.log(`${MODULE_ID} | ${GROUP_TYPE} sheet registered.`);
+
+  // The template is a BUILDER, not a stat block: axis pins, an optional base
+  // actor, and Generate (see apps/template-sheet.mjs).
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(Actor, MODULE_ID, TemplateSheet, {
+    types: [TEMPLATE_TYPE],
+    makeDefault: true,
+    label: "ACKS-LIB.sheet.template",
+  });
+  console.log(`${MODULE_ID} | ${TEMPLATE_TYPE} sheet registered.`);
 });

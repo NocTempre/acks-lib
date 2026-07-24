@@ -364,3 +364,37 @@ keep working when the system adds a physical type this library never heard of.
 `weight6Of` multiplies by quantity only where a quantity field exists.
 `physicalFields()` / `equippableFields()` build a module sub-type's own schema
 to match the system exactly rather than approximately.
+
+### `acks-lib.template` — the generator actor (v0.16)
+
+The MM's "characteristics by rank/age/tier" creatures (dragon, cacodemon,
+elemental) have no stat block — every cell points at tables on the following
+pages — and modifier creatures (vampire thrall) rewrite a victim rather than
+standing alone. `TemplateData` holds that procedure as a document: AXES whose
+options carry **engine-ready patches** (`system.*` fragments, embedded-item
+payloads, name pieces, art paths, description snippets), N-dimensional `cells`
+refinements, and a rolled special-ability `menu`. The importing module
+(acks-content) materializes all of it from the reader's own book; this library
+never interprets book content — a bookless template has empty axes and the
+sheet says so instead of offering an empty Generate.
+
+```js
+const { chooseAxes, resolveActor, rollMenu, rollDie, mergePatch, seededRng } =
+  acksLib.templateLogic; // Foundry-free, Node-importable
+```
+
+Per-axis precedence is **pinned > derived > rolled**: the Judge pins what they
+care about, an axis with `derive.from` reads a dropped base actor (the thrall
+keeps its victim's HD, capped), and everything else rolls per the book's own
+die over the printed bands (uniform when the page prints no die). Quick use
+pins nothing: drop a Dragon template in and Generate yields a rules-legal
+random dragon in one click. `resolveActor` merges the chosen options in axis
+order, then the `cells` (so a per-age-per-form damage cell outranks the age
+row it refines), and composes the name from `output.nameFormat`
+(`"{tier} {element} Elemental"`, `{base}` = the dropped actor's name).
+
+The **builder sheet** (`TemplateSheet`, registered at `ready`) shows one select
+per axis defaulting to "Roll", a drop zone for the base actor, and Generate;
+pins and the base are per-window UI state, never document data. Generated
+actors carry `flags["acks-lib"].generated = {templateUuid, choices, log, menu}`
+as provenance.

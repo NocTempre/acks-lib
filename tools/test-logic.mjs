@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import * as vocab from "../scripts/vocab.mjs";
 import { cleanDelta, isDerivedEffect, memberName, nextOrdinal, sizeFromEcology } from "../scripts/group-logic.mjs";
+import { chooseAxes, mergePatch, resolveActor, rollDie, rollMenu, rollOption, seededRng } from "../scripts/template-logic.mjs";
 
 const { resolveLevelValue: R, choicesOf } = vocab;
 let n = 0;
@@ -276,6 +277,111 @@ t("sizeFromEcology: reads the rich block, falls back to core, else null", () => 
   // Nothing stated at all → null, so the Judge types the size.
   assert.equal(sizeFromEcology({ getFlag: () => undefined, system: {} }), null);
   assert.equal(sizeFromEcology(null), null);
+});
+
+/* --- template-logic (the acks-lib.template generator) --- */
+
+// A miniature elemental-shaped template: two axes, one 2-axis cell, a menu.
+const TEMPLATE_SYS = {
+  output: { actorType: "monster", nameFormat: "{tier} {element} Elemental" },
+  axes: [
+    {
+      key: "tier", label: "Tier", roll: "1d4",
+      derive: { from: "", max: null },
+      options: [
+        { key: "petty", label: "Petty", rollMin: 1, rollMax: 2, menuBudget: 1, merge: { aac: { value: 5 }, "details.xp": 135 }, items: [], html: "<p>petty</p>" },
+        { key: "major", label: "Major", rollMin: 3, rollMax: 4, menuBudget: 2, merge: { aac: { value: 9 } }, items: [{ name: "Slam", type: "weapon" }], html: "" },
+      ],
+    },
+    {
+      key: "element", label: "Element", roll: "",
+      derive: { from: "", max: null },
+      options: [
+        { key: "fire", label: "Fire", merge: { details: { alignment: "Neutral" } }, items: [], art: "fire.webp", html: "" },
+        { key: "water", label: "Water", merge: {}, items: [], art: "water.webp", html: "" },
+      ],
+    },
+  ],
+  cells: [
+    { by: ["tier", "element"], key: "major|fire", merge: { attacks: "special" }, items: [] },
+  ],
+  menu: {
+    die: "1d100", budgetAxis: "tier",
+    rows: [
+      { min: 1, max: 50, label: "Poison", cost: null, html: "<p>poison</p>" },
+      { min: 51, max: 100, label: "Regeneration", cost: 1, html: "" },
+    ],
+  },
+};
+
+t("rollDie parses NdM and stays in range; garbage is null", () => {
+  const rng = seededRng(7);
+  for (let i = 0; i < 50; i++) {
+    const v = rollDie("1d100", rng);
+    assert.ok(v >= 1 && v <= 100, "1d100 in range");
+  }
+  assert.equal(rollDie("2d6", () => 0), 2, "two dice floor");
+  assert.equal(rollDie("varies", rng), null);
+});
+
+t("rollOption honors printed bands; uniform when the axis has no die", () => {
+  const axis = TEMPLATE_SYS.axes[0];
+  assert.equal(rollOption(axis, () => 0.1).option.key, "petty", "low roll lands the low band");
+  assert.equal(rollOption(axis, () => 0.9).option.key, "major", "high roll lands the high band");
+  const uniform = rollOption(TEMPLATE_SYS.axes[1], () => 0.99);
+  assert.equal(uniform.option.key, "water");
+  assert.equal(uniform.roll, null, "uniform picks report no roll");
+});
+
+t("chooseAxes precedence: pinned > derived > rolled", () => {
+  const rng = seededRng(3);
+  const pinnedRun = chooseAxes(TEMPLATE_SYS, { pinned: { tier: "major", element: "fire" }, rng });
+  assert.deepEqual(pinnedRun.choices, { tier: "major", element: "fire" });
+  assert.ok(pinnedRun.log.every((l) => l.source === "pinned"));
+  // A derive axis reads the base value, clamped by its cap, matching numeric keys.
+  const thrall = {
+    axes: [{
+      key: "hd", label: "HD", roll: "", derive: { from: "hd", max: 8 },
+      options: [1, 2, 3, 8].map((num) => ({ key: String(num), label: `${num} HD`, merge: {}, items: [] })),
+    }],
+  };
+  assert.equal(chooseAxes(thrall, { baseValues: { hd: 11 }, rng }).choices.hd, "8", "capped at 8");
+  assert.equal(chooseAxes(thrall, { baseValues: { hd: 5 }, rng }).choices.hd, "3", "closest row not exceeding");
+  // A stale pin falls through to a roll rather than failing.
+  const stale = chooseAxes(TEMPLATE_SYS, { pinned: { tier: "gone" }, rng });
+  assert.ok(["petty", "major"].includes(stale.choices.tier));
+});
+
+t("rollMenu spends the budget over printed bands, no duplicates", () => {
+  const rng = seededRng(11);
+  const one = rollMenu(TEMPLATE_SYS.menu, 1, rng);
+  assert.equal(one.picks.length, 1);
+  const two = rollMenu(TEMPLATE_SYS.menu, 2, rng);
+  assert.equal(two.picks.length, 2, "budget 2 buys both rows");
+  assert.notEqual(two.picks[0].label, two.picks[1].label, "distinct rows");
+  assert.deepEqual(rollMenu(TEMPLATE_SYS.menu, 0, rng).picks, [], "no budget, no picks");
+});
+
+t("mergePatch: dotted keys expand, objects merge deep, scalars replace", () => {
+  const out = mergePatch({ aac: { value: 1, mod: 2 } }, { "details.morale": 3, aac: { value: 9 } });
+  assert.deepEqual(out, { aac: { value: 9, mod: 2 }, details: { morale: 3 } });
+});
+
+t("resolveActor merges axis rows then N-D cells, composes the name", () => {
+  const r = resolveActor(TEMPLATE_SYS, { tier: "major", element: "fire" }, { templateName: "Elemental" });
+  assert.equal(r.name, "Major Fire Elemental");
+  assert.equal(r.system.aac.value, 9);
+  assert.equal(r.system.attacks, "special", "2-axis cell applied after axis rows");
+  assert.equal(r.items.length, 1);
+  assert.equal(r.art, "fire.webp", "per-option art rides along");
+  // The petty row's dotted merge lands as nested structure.
+  const p = resolveActor(TEMPLATE_SYS, { tier: "petty", element: "water" }, { templateName: "Elemental" });
+  assert.equal(p.system.details.xp, 135);
+  assert.equal(p.name, "Petty Water Elemental");
+  assert.deepEqual(p.htmlParts, ["<p>petty</p>"]);
+  // {base} in a nameFormat resolves to the dropped actor's name.
+  const mod = { output: { nameFormat: "{base}, Vampire Thrall" }, axes: [] };
+  assert.equal(resolveActor(mod, {}, { baseName: "Bob the Fighter" }).name, "Bob the Fighter, Vampire Thrall");
 });
 
 console.log(`\n${n} tests passed`);

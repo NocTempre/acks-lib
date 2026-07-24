@@ -29,3 +29,10 @@ builders that consumer modules assemble into their own models.
 - **Foundry-free split:** `vocab.mjs` (enums + resolver) imports in Node so the
   acks-content cookbook compiler/executor share one definition; `fields.mjs`
   (Foundry field-builders) is lazy so the module still evaluates under Node.
+
+- **The template actor is a generator, never a bulk import** (2026-07-24):
+  the book statting a creature as tables (dragon: 11 ages x 9 types x 4 body
+  forms) is the book saying "make one when you need one". Materializing the
+  cross product would be hundreds of near-duplicate actors; the template +
+  builder honors the book procedure instead, and a dropped base actor makes
+  the same document a modifier (vampire thrall).
