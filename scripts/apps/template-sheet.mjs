@@ -297,9 +297,15 @@ export class TemplateSheet extends HandlebarsApplicationMixin(foundry.applicatio
 
     // Description: the option snippets, then the rolled abilities — each a
     // lazy tag the importer authored; a bookless viewer sees stubs, as ever.
+    // A resolved sub-roll ("aura type") rides its ability as a rolled note.
     const htmlParts = [...resolved.htmlParts];
     for (const pick of menuPicks) {
-      htmlParts.push(pick.html || `<p>${pick.label}</p>`);
+      let part = pick.html || `<p>${pick.label}</p>`;
+      if (pick.subResult) {
+        const s = pick.subResult;
+        part += `<p><em>${s.die}${s.twice ? " ×2" : ""} → ${s.rolls.join(", ")}: ${s.texts.join("; ")}</em></p>`;
+      }
+      htmlParts.push(part);
     }
     const biography = htmlParts.join("");
 

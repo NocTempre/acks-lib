@@ -148,13 +148,37 @@ export function chooseAxes(system, { pinned = {}, baseValues = {}, rng = Math.ra
 }
 
 /**
+ * Resolve a row's GENERATION sub-roll ("roll 1d8 for the type of aura: …"):
+ * roll the die (twice when flagged), pick the enumerated outcome per roll.
+ * Returns `{die, twice, rolls, texts}` or null (no sub, unmatched roll —
+ * graceful, the Judge reads the prose). Never recurses: an outcome that
+ * itself says "roll 1d8+4 twice" stays text.
+ */
+export function resolveSubRoll(sub, rng = Math.random) {
+  const outcomes = Array.isArray(sub?.outcomes) ? sub.outcomes : [];
+  if (!sub?.die || !outcomes.length) return null;
+  const rolls = [];
+  const texts = [];
+  for (let i = 0; i < (sub.twice ? 2 : 1); i++) {
+    const v = rollDie(sub.die, rng);
+    if (v == null) return null;
+    rolls.push(v);
+    const hit = outcomes.find((o) => v >= (o.min ?? 1) && v <= (o.max ?? o.min ?? Infinity));
+    if (hit?.text) texts.push(hit.text);
+  }
+  return texts.length ? { die: sub.die, twice: !!sub.twice, rolls, texts } : null;
+}
+
+/**
  * Roll the special-ability MENU (cacodemon/dragon pages): d100 over printed
  * bands when the menu ships a die, else uniform, spending `budget` slots
  * against each row's slot cost (default 1; the dragon prints fractions).
- * Distinct rows only. Returns `{picks, rolls}`.
+ * Distinct rows only. Returns `{picks, rolls}` — each pick is a COPY of its
+ * row, carrying `subResult` when the row's own sub-roll resolved.
  */
 export function rollMenu(menu, budget, rng = Math.random) {
   const rows = menu?.rows ?? [];
+  const chosen = [];
   const picks = [];
   const rolls = [];
   if (!rows.length || !(budget > 0)) return { picks, rolls };
@@ -169,16 +193,18 @@ export function rollMenu(menu, budget, rng = Math.random) {
       rolls.push(v);
       row = rows.find((r) => v >= (r.min ?? 1) && v <= (r.max ?? faces ?? Infinity)) ?? null;
     } else {
-      const unpicked = rows.filter((r) => !picks.includes(r));
+      const unpicked = rows.filter((r) => !chosen.includes(r));
       if (!unpicked.length) break;
       row = unpicked[Math.floor(rng() * unpicked.length)];
     }
-    if (!row || picks.includes(row)) continue; // re-roll duplicates, per the book
+    if (!row || chosen.includes(row)) continue; // re-roll duplicates, per the book
     if (spent + costOf(row) > budget) continue;
-    picks.push(row);
+    chosen.push(row);
+    const subResult = resolveSubRoll(row.sub, rng);
+    picks.push({ ...row, ...(subResult ? { subResult } : {}) });
     spent += costOf(row);
     // Nothing affordable remains → stop instead of burning attempts.
-    if (!rows.some((r) => !picks.includes(r) && spent + costOf(r) <= budget)) break;
+    if (!rows.some((r) => !chosen.includes(r) && spent + costOf(r) <= budget)) break;
   }
   return { picks, rolls };
 }

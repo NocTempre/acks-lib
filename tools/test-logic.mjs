@@ -352,6 +352,28 @@ t("chooseAxes precedence: pinned > derived > rolled", () => {
   assert.ok(["petty", "major"].includes(stale.choices.tier));
 });
 
+t("sub-rolls resolve on pick: die, outcomes, twice; graceful without", () => {
+  const menu = {
+    die: "1d100", budgetAxis: "x",
+    rows: [{
+      min: 1, max: 100, label: "Aura", cost: 1, html: "<p>aura</p>",
+      sub: { die: "1d8", outcomes: [
+        { min: 1, max: 4, text: "arcane" },
+        { min: 5, max: 8, text: "fire" },
+      ]},
+    }],
+  };
+  const low = rollMenu(menu, 1, () => 0.1);
+  assert.equal(low.picks[0].subResult.texts[0], "arcane", "low roll → low band");
+  const high = rollMenu(menu, 1, () => 0.9);
+  assert.equal(high.picks[0].subResult.texts[0], "fire");
+  const twice = { ...menu, rows: [{ ...menu.rows[0], sub: { ...menu.rows[0].sub, twice: true } }] };
+  const t2 = rollMenu(twice, 1, seededRng(9));
+  assert.equal(t2.picks[0].subResult.rolls.length, 2, "twice rolls twice");
+  const bare = rollMenu({ ...menu, rows: [{ ...menu.rows[0], sub: {} }] }, 1, seededRng(9));
+  assert.equal(bare.picks[0].subResult, undefined, "no sub data → no subResult");
+});
+
 t("rollMenu spends the budget over printed bands, no duplicates", () => {
   const rng = seededRng(11);
   const one = rollMenu(TEMPLATE_SYS.menu, 1, rng);

@@ -418,3 +418,9 @@ existing numeric value instead of replacing it (missing base counts from 0;
 only the exact one-key `{$add: number}` shape is relative). This is the
 primitive MODIFIER templates build on: an aging template's "−1 STR" patch
 composes with whatever base actor it is stacked onto.
+
+v0.19: menu rows may carry a `sub` generation roll ({die, twice?, outcomes:
+[{min,max,text}]}, importer-materialized from the ability's own prose);
+`rollMenu` resolves it when the row is picked (picks are row COPIES carrying
+`subResult`) via the exported `resolveSubRoll`. Never recurses — an outcome
+that itself says "roll 1d8+4 twice" stays text for the Judge.
