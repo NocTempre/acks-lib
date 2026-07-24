@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.0
+
+**Two shared primitives, each wired to real consumers.**
+
+- `int` — a required-integer field-builder — joins `num`/`str` in `fields.mjs`.
+  acks-henchmen had it copied verbatim in two data files; both now import it.
+- `slug` — the lowercase-alphanumeric fold for name matching — joins
+  `vocab.mjs` and now backs `capabilityForId` internally. acks-equipment
+  (locks), acks-abilities (rank counting) and acks-formation (ability key)
+  each carried an identical copy; all three now import it.
+
+Additive only. `normalizeAlignment`, a `choicesOf` fold, and GM helpers were
+built and then **dropped** — checking each found no clean consumer (influence's
+alignment is a deliberately separate token set; henchmen's `choicesOf` assumes a
+different enum shape), so shipping them would have been dead API.
+
 ## 0.10.1
 
 **Animal saves match the RELEASED system, not its dev branch.** `savingThrowFields()`

@@ -42,7 +42,7 @@ export const ANIMAL_TYPE = `${MODULE_ID}.animal`;
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
-  apiVersion: 6,
+  apiVersion: 7,
   vocab,
   fields,
   resolveLevelValue,

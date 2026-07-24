@@ -16,6 +16,23 @@
 export const choicesOf = (enumObj) =>
   Object.fromEntries(Object.entries(enumObj).map(([k, v]) => [k, v?.label ?? k]));
 
+/**
+ * Fold a name/key to a lowercase alphanumeric slug for MATCHING — the
+ * canonical form of `String(x).toLowerCase().replace(/[^a-z0-9]/g, "")` that
+ * five modules had each reimplemented (equipment's normalizeName, locks' slug,
+ * abilities' roll key, formation's abilityKey, influence). Use it whenever two
+ * human-written names must compare equal regardless of case, spacing, or
+ * punctuation ("Goblin-Slaying" === "goblin slaying"). Foundry-free.
+ */
+export const slug = (x) => String(x ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+// NOTE deliberately NO normalizeAlignment here. It looked like a fold, but the
+// one module that classifies alignment (acks-influence) keeps its OWN token set
+// (law/chaos/neutral/other, baked into published effect flags) and translates
+// at its boundary on purpose — see its actor-data.mjs. There is no live
+// consumer for a lawful/neutral/chaotic free-text fold, so shipping one would
+// be a dead primitive. Add it beside ALIGNMENTS when a real consumer appears.
+
 /* ---------------------------------------------------------------- */
 /*  Shared with acks-monsters (mirror — keep value-identical)        */
 /* ---------------------------------------------------------------- */
@@ -363,13 +380,7 @@ export const isCapabilityToken = (token) => String(token ?? "").startsWith(CAPAB
 
 /** "def.prof.sensingEvil" → "kw:sensingevil". Case- and separator-folded. */
 export const capabilityForId = (id) =>
-  CAPABILITY_PREFIX +
-  String(id ?? "")
-    .split(".")
-    .slice(2)
-    .join("")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+  CAPABILITY_PREFIX + slug(String(id ?? "").split(".").slice(2).join(""));
 
 /**
  * Does a character holding `abilities` satisfy `token`?
