@@ -31,6 +31,7 @@ import * as tables from "./tables.mjs";
 import * as services from "./services.mjs";
 import * as itemModel from "./item-model.mjs";
 import * as mount from "./mount.mjs";
+import * as actorRead from "./actor-read.mjs";
 import { loadRuledata } from "./ruledata.mjs";
 import { resolveLevelValue } from "./vocab.mjs";
 import { acksCompatStubs, savingThrowFields } from "./actor-compat.mjs";
@@ -42,7 +43,7 @@ export const ANIMAL_TYPE = `${MODULE_ID}.animal`;
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
-  apiVersion: 7,
+  apiVersion: 8,
   vocab,
   fields,
   resolveLevelValue,
@@ -58,6 +59,8 @@ const localImpl = Object.freeze({
   mount,
   /** Shared item baseline: isPhysical / isEquippable / weight6Of / … */
   itemModel,
+  /** System actor reads: abilityMod / classLevel / monsterHd / hitDiceOrLevel. */
+  actorRead,
 });
 
 // Core-deferral shim (FAMILY.md §3d): if/when a surface is upstreamed into the

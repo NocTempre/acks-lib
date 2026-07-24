@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.12.0
+
+**Shared actor-read accessors (`actor-read.mjs`).** The small graceful-degradation
+reads of the acks system's actor sheet — an ability modifier, class level, and a
+monster's Hit Dice — lived in both acks-henchmen and acks-influence. They're one
+definition now: `abilityMod`, `classLevel`, `monsterHd`, `hitDiceOrLevel`.
+
+The `monsterHd` parser is the **union** of the two copies, which had each missed
+a case the other handled: henchmen read a leading decimal (`"0.5d4"`→0.5) but not
+the `"1/2"` fraction; influence read the fraction but mis-read a decimal and
+matched a digit anywhere (`"d8"`→8, taking the die size for a rating). The union
+handles a number, an `a/b` fraction, and a leading integer-or-decimal, anchored
+so a die size can't be mistaken for a rating — fixing both latent bugs.
+
 ## 0.11.0
 
 **Two shared primitives, each wired to real consumers.**
