@@ -100,6 +100,14 @@ body.acks-lib-sheet-theme .acks.sheet.actor .window-content {
   background: var(--acks-paper);
 }
 
+/* The released system's v2 sheets (actor-v2 / item-v2) ride Foundry's theme
+   ground; the printed sheet is a light gray page, so give them the same. */
+body.acks-lib-sheet-theme .sheet.acks.actor-v2 .window-content,
+body.acks-lib-sheet-theme .sheet.acks.item-v2 .window-content {
+  background: var(--acks-paper);
+  color: var(--acks-ink);
+}
+
 /* --- Fields: white boxes with a thin dark rule, as printed. --- */
 body.acks-lib-sheet-theme .acks .window-content input:not([type="checkbox"]) {
   background: var(--acks-field);
