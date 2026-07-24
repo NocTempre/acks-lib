@@ -24,7 +24,7 @@
  *   - **the shared item baseline** — one answer to "is this physical / can it
  *     be equipped / what does it weigh", which the system spells out per type
  */
-import { MODULE_ID } from "./constants.mjs";
+import { MODULE_ID, LANG_PREFIX } from "./constants.mjs";
 import * as vocab from "./vocab.mjs";
 import * as fields from "./fields.mjs";
 import * as tables from "./tables.mjs";
@@ -102,6 +102,18 @@ Hooks.once("init", () => {
 
   registerMountCleanup();
 
+  // Printed-character-sheet theme (styles/sheet-theme.css): the stylesheet is
+  // inert until this class lands on <body>, so the setting is a pure toggle.
+  game.settings.register(MODULE_ID, "sheetTheme", {
+    name: `${LANG_PREFIX}.settings.sheetTheme.name`,
+    hint: `${LANG_PREFIX}.settings.sheetTheme.hint`,
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: (on) => document.body.classList.toggle("acks-lib-sheet-theme", on),
+  });
+
   console.log(`${MODULE_ID} | primitives ready (apiVersion ${api.apiVersion}).`);
 });
 
@@ -148,6 +160,9 @@ Hooks.once("setup", () => {
  * world failing to load — and the console says which.
  */
 Hooks.once("ready", () => {
+  // Theme class lands once settings are readable; onChange handles the rest.
+  document.body.classList.toggle("acks-lib-sheet-theme", game.settings.get(MODULE_ID, "sheetTheme"));
+
   if (game.system?.id !== "acks") return;
   const registered = CONFIG.Actor?.sheetClasses?.monster ?? {};
   const entries = Object.values(registered);

@@ -1,0 +1,153 @@
+/* ACKS II printed-character-sheet theme (acks-lib override layer).
+ *
+ * Visual language extracted from the official ACKS II character sheet PDF
+ * (ACKSII_Character_Sheet_5_pages_2024-10-21): deep maroon banners with
+ * cream small-caps serif lettering over a light neutral-gray sheet, white
+ * fields boxed by thin near-black rules, black heraldic line-work.
+ *
+ * This is a THEME, not system CSS: every rule is scoped under
+ * `body.acks-lib-sheet-theme` (toggled by the acks-lib client setting), which
+ * both keeps it opt-out and out-specifies the system rules it overrides.
+ * The system's own custom properties (--acks-purple,
+ * --acks-sheet-tabs-background) are redefined at body level, so system
+ * chrome that already reads those vars follows the theme with no selector
+ * override at all; the rules below only chase the hardcoded one-offs
+ * (papyrus window ground, back.png panel bars, tan tabs, charcoal tags,
+ * green encumbrance fill, underline-style inputs).
+ */
+
+body.acks-lib-sheet-theme {
+  --acks-maroon: #5c1f2b;
+  --acks-maroon-dark: #451621;
+  --acks-ink: #1a1a1a;
+  --acks-paper: #e9e8e5;
+  --acks-field: #ffffff;
+  --acks-cream: #f3eee3;
+  --acks-heading-font: "ebgaramond-regular", "oranienbaum", serif;
+  --acks-banner: var(--acks-maroon) url("/systems/acks/assets/ui/acks_red_background.webp");
+  /* System vars, retuned: everything that reads them follows the sheet. */
+  --acks-purple: var(--acks-maroon);
+  --acks-sheet-tabs-background: var(--acks-paper);
+}
+
+/* --- Banner typography: cream small-caps serif on every header band. --- */
+body.acks-lib-sheet-theme .acks .window-header .window-title,
+body.acks-lib-sheet-theme .acks2 .window-header .window-title,
+body.acks-lib-sheet-theme .acks .panel .panel-title h4,
+body.acks-lib-sheet-theme .acks .item-titles,
+body.acks-lib-sheet-theme .acks .list-header,
+body.acks-lib-sheet-theme .acks2 .list-header,
+body.acks-lib-sheet-theme .acks .chat-header .chat-title h2,
+body.acks-lib-sheet-theme .acks .favorite-title,
+body.acks-lib-sheet-theme .acks.dialog.party-sheet .header {
+  font-family: var(--acks-heading-font);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+body.acks-lib-sheet-theme .acks fieldset legend,
+body.acks-lib-sheet-theme .acks2 fieldset legend {
+  font-family: var(--acks-heading-font);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-weight: bold;
+}
+
+/* --- Banner surfaces: the maroon glitter texture of the sheet header. --- */
+body.acks-lib-sheet-theme .window-header,
+body.acks-lib-sheet-theme .application .window-header {
+  background: var(--acks-banner);
+}
+
+body.acks-lib-sheet-theme .acks.sheet.actor .panel .panel-title,
+body.acks-lib-sheet-theme .acks.dialog.party-sheet .header {
+  color: var(--acks-cream);
+  background: var(--acks-banner);
+}
+
+body.acks-lib-sheet-theme .acks.sheet.actor .sheet-body .inventory .item-titles,
+body.acks-lib-sheet-theme .acks.chat-block .chat-header,
+body.acks-lib-sheet-theme .favorite-title {
+  background: var(--acks-banner);
+  color: var(--acks-cream);
+}
+
+body.acks-lib-sheet-theme .acks.sheet.actor .sheet-body .attributes .attribute .attribute-name {
+  color: var(--acks-cream);
+  background: var(--acks-banner);
+  font-family: var(--acks-heading-font);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+}
+
+body.acks-lib-sheet-theme .acks.chat-block .chat-header .chat-title h2 {
+  color: var(--acks-cream);
+}
+
+/* Active sheet tab reads as the selected banner. */
+body.acks-lib-sheet-theme .acks.sheet.actor .sheet-tabs .item.active,
+body.acks-lib-sheet-theme .acks.sheet.item .sheet-tabs .item.active {
+  background: var(--acks-banner);
+  color: var(--acks-cream);
+}
+
+/* --- Sheet ground: neutral light gray in place of the papyrus webp. --- */
+body.acks-lib-sheet-theme .acks.sheet.actor {
+  background: var(--acks-paper);
+}
+
+body.acks-lib-sheet-theme .acks.sheet.actor .window-content {
+  background: var(--acks-paper);
+}
+
+/* --- Fields: white boxes with a thin dark rule, as printed. --- */
+body.acks-lib-sheet-theme .acks .window-content input:not([type="checkbox"]) {
+  background: var(--acks-field);
+  border: 1px solid var(--acks-ink);
+  border-radius: 2px;
+  color: var(--input-text-color);
+}
+
+body.acks-lib-sheet-theme .acks .window-content input:not([type="checkbox"]):hover:not(:disabled),
+body.acks-lib-sheet-theme .acks .window-content input:not([type="checkbox"]):focus:not(:disabled) {
+  box-shadow: 0 0 3px var(--acks-maroon);
+  background: var(--acks-field);
+  border-color: var(--acks-maroon);
+}
+
+/* Inputs drawn over artwork (shield, hearts) or inside tight spinner rows
+   stay unboxed — a white field would cover the art. */
+body.acks-lib-sheet-theme .acks.sheet.actor.character .sheet-body .health input,
+body.acks-lib-sheet-theme .acks .window-content input.health-top,
+body.acks-lib-sheet-theme .acks .window-content input.health-bottom,
+body.acks-lib-sheet-theme .acks .window-content .field-long.memorize input,
+body.acks-lib-sheet-theme .acks .window-content .field-short.quantity input {
+  background: transparent;
+  border: none;
+}
+
+body.acks-lib-sheet-theme .acks.sheet.actor.character .sheet-body .health input:hover:not(:disabled),
+body.acks-lib-sheet-theme .acks.sheet.actor.character .sheet-body .health input:focus:not(:disabled) {
+  box-shadow: none;
+  background: transparent;
+}
+
+/* --- One-off colors routed into the sheet palette. --- */
+body.acks-lib-sheet-theme .acks.sheet.actor .sheet-body .inventory .item-list .item-summary .tag-list .tag,
+body.acks-lib-sheet-theme .acks.sheet.item .sheet-header .tag-list .tag {
+  background: var(--acks-maroon);
+  border-color: var(--acks-maroon-dark);
+  color: var(--acks-cream);
+}
+
+body.acks-lib-sheet-theme .acks.sheet.actor.character .encumbrance {
+  background: var(--acks-paper);
+}
+
+body.acks-lib-sheet-theme .acks.sheet.actor.character .encumbrance .encumbrance-bar {
+  background: rgb(from var(--acks-maroon) r g b / 0.75);
+}
+
+body.acks-lib-sheet-theme .sheet.acks.actor-v2 .encumbrance-fill {
+  background-color: rgb(from var(--acks-maroon) r g b / 0.8);
+}

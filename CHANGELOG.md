@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.24.0
+
+**Printed-character-sheet theme.** New `styles/sheet-theme.css`, scoped under
+`body.acks-lib-sheet-theme` and toggled by a per-client setting (default on):
+the visual language of the official ACKS II character sheet PDF — deep maroon
+banners (the system's red-glitter texture) with cream small-caps serif
+lettering on every header band, a neutral light-gray sheet ground in place of
+the papyrus webp, white input fields boxed by a thin dark rule (inputs drawn
+over shield/heart artwork stay unboxed), and the system's one-off colors (tan
+tabs, charcoal tags, green encumbrance fill) routed through the sheet's
+maroon/paper palette. Implemented as an override layer here rather than in
+core: the system's own CSS custom properties are redefined at body level, so
+system chrome follows the theme without editing system files.
+
 ## 0.23.0
 
 **The troops addendum gets real mechanics — command capacity and unit morale.**
