@@ -36,14 +36,18 @@ import { loadRuledata } from "./ruledata.mjs";
 import { resolveLevelValue } from "./vocab.mjs";
 import { acksCompatStubs, savingThrowFields } from "./actor-compat.mjs";
 import AnimalData from "./data/animal-data.mjs";
+import GroupData from "./data/group-data.mjs";
+import * as groups from "./group.mjs";
+import { GroupSheet } from "./apps/group-sheet.mjs";
 import { registerMountCleanup } from "./mount.mjs";
 
-/** The actor sub-type this library adds to the system. */
+/** The actor sub-types this library adds to the system. */
 export const ANIMAL_TYPE = `${MODULE_ID}.animal`;
+export const GROUP_TYPE = `${MODULE_ID}.group`;
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
-  apiVersion: 8,
+  apiVersion: 9,
   vocab,
   fields,
   resolveLevelValue,
@@ -55,6 +59,10 @@ const localImpl = Object.freeze({
   savingThrowFields,
   AnimalData,
   ANIMAL_TYPE,
+  /** The `acks-lib.group` stackable actor: model + lifecycle ops. */
+  GroupData,
+  GROUP_TYPE,
+  groups,
   /** Mount binding: mountOf / riderOf / isMounted / mountActor / dismount / unseat. */
   mount,
   /** Shared item baseline: isPhysical / isEquippable / weight6Of / … */
@@ -109,7 +117,8 @@ Hooks.once("init", () => {
  */
 Hooks.once("setup", () => {
   CONFIG.Actor.dataModels[ANIMAL_TYPE] = AnimalData;
-  console.log(`${MODULE_ID} | ${ANIMAL_TYPE} data model registered.`);
+  CONFIG.Actor.dataModels[GROUP_TYPE] = GroupData;
+  console.log(`${MODULE_ID} | ${ANIMAL_TYPE}, ${GROUP_TYPE} data models registered.`);
 });
 
 /**
@@ -144,4 +153,13 @@ Hooks.once("ready", () => {
     label: "ACKS-LIB.sheet.animal",
   });
   console.log(`${MODULE_ID} | ${ANIMAL_TYPE} uses the system's monster sheet.`);
+
+  // The group ships its OWN sheet: a stack is a headcount and a roster, not a
+  // stat block, so unlike the animal it does not borrow the monster sheet.
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(Actor, MODULE_ID, GroupSheet, {
+    types: [GROUP_TYPE],
+    makeDefault: true,
+    label: "ACKS-LIB.sheet.group",
+  });
+  console.log(`${MODULE_ID} | ${GROUP_TYPE} sheet registered.`);
 });

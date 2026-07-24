@@ -5,6 +5,7 @@
  */
 import assert from "node:assert/strict";
 import * as vocab from "../scripts/vocab.mjs";
+import { cleanDelta, isDerivedEffect, memberName, nextOrdinal, sizeFromEcology } from "../scripts/group-logic.mjs";
 
 const { resolveLevelValue: R, choicesOf } = vocab;
 let n = 0;
@@ -212,6 +213,69 @@ t("services: register/get/names; absent contract is null, never a throw", () => 
   assert.equal(S.get("ruledata-import"), impl);
   assert.deepEqual(S.names(), ["ruledata-import"]);
   S.resetServices();
+});
+
+/* -------------------------------------------- */
+/*  group.mjs — the Foundry-free lifecycle logic */
+/* -------------------------------------------- */
+
+t("nextOrdinal: one past the highest, never reused", () => {
+  assert.equal(nextOrdinal({ roster: [] }), 1);
+  assert.equal(nextOrdinal({ roster: [{ ordinal: 1 }, { ordinal: 2 }] }), 3);
+  // #2 died and its record was pruned; the next body is still #3, not #2.
+  assert.equal(nextOrdinal({ roster: [{ ordinal: 1 }, { ordinal: 3 }] }), 4);
+});
+
+t("memberName: own name wins, else prototype label + ordinal", () => {
+  const sys = { prototype: { label: "Kobold" } };
+  assert.equal(memberName(sys, { name: "Meepo", ordinal: 4 }), "Meepo");
+  assert.equal(memberName(sys, { name: "", ordinal: 7 }), "Kobold #7");
+  assert.equal(memberName({ prototype: {} }, { ordinal: 2 }), "Member #2");
+});
+
+t("isDerivedEffect: a module-managed effect is derived, an authored one is not", () => {
+  assert.equal(isDerivedEffect({ flags: { "acks-equipment": { managed: true } } }), true);
+  assert.equal(isDerivedEffect({ name: "Curse", flags: {} }), false);
+  assert.equal(isDerivedEffect({ flags: { "acks-equipment": { loadout: true } } }), false, "only the 'managed' marker counts");
+  assert.equal(isDerivedEffect({}), false);
+});
+
+t("cleanDelta: strips derived effects, keeps authored, leaves the rest intact", () => {
+  // cleanDelta uses foundry.utils.deepClone — provide the one call it needs.
+  globalThis.foundry = { utils: { deepClone: (o) => structuredClone(o) } };
+  const delta = {
+    system: { hp: { value: 3 } },
+    effects: [
+      { name: "Loadout", flags: { "acks-equipment": { managed: true } } },
+      { name: "Judge's Curse", flags: {} },
+    ],
+  };
+  const out = cleanDelta(delta);
+  assert.equal(out.effects.length, 1);
+  assert.equal(out.effects[0].name, "Judge's Curse");
+  assert.deepEqual(out.system, { hp: { value: 3 } }, "non-effect delta is untouched");
+  // An all-derived effects array is dropped entirely, not left empty.
+  const allDerived = cleanDelta({ effects: [{ flags: { x: { managed: true } } }] });
+  assert.equal("effects" in allDerived, false);
+  delete globalThis.foundry;
+});
+
+t("sizeFromEcology: reads the rich block, falls back to core, else null", () => {
+  const rich = {
+    getFlag: (m, k) => (m === "acks-monsters" && k === "extras"
+      ? { encounter: { wilderness: { wandering: { number: "4d6" } }, dungeon: { lair: { number: "2d4" } } } }
+      : undefined),
+    system: {},
+  };
+  assert.equal(sizeFromEcology(rich, "wilderness"), "4d6");
+  assert.equal(sizeFromEcology(rich, "dungeon"), "2d4", "lair number when no wandering");
+  // No extras: fall back to the core details.appearing mirror.
+  const core = { getFlag: () => undefined, system: { details: { appearing: { w: "1d8", d: "1" } } } };
+  assert.equal(sizeFromEcology(core, "wilderness"), "1d8");
+  assert.equal(sizeFromEcology(core, "dungeon"), "1");
+  // Nothing stated at all → null, so the Judge types the size.
+  assert.equal(sizeFromEcology({ getFlag: () => undefined, system: {} }), null);
+  assert.equal(sizeFromEcology(null), null);
 });
 
 console.log(`\n${n} tests passed`);

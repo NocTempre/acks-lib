@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.15.0
+
+**The `acks-lib.group` stackable actor.** A group is many near-identical
+creatures held as one actor — a mercenary platoon, a pack of kobolds, a flight
+of manes — carrying a headcount and a *sparse* roster. The load-bearing idea:
+a member's individuality IS an `ActorDelta` source object (Foundry's own
+per-instance override), so a member that has never diverged needs no record at
+all, and a deployed member is an ordinary token over an ordinary actor that
+every system/module reads unchanged. Adds `GroupData`, `GROUP_TYPE`, and the
+`groups` lifecycle API (setPrototype / deploy / recall / detach / materialize /
+casualties), a dedicated sheet, and the Foundry-free `group-logic.mjs` (unit
+tested). Ecology consumption is one soft `sizeFromEcology` reader and otherwise
+a documented, unimplemented seam. `apiVersion` → 9. See `docs/GROUPS.md`.
+Mercenary-specific behaviour (leaders, training, unit wages) is deliberately
+NOT here — it belongs to a consuming module (`acks-troops`).
+
 ## 0.14.0
 
 **`speedsField` gains the full ACKS Speed row.** It described only
