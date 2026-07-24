@@ -77,15 +77,37 @@ export default class AnimalData extends foundry.abstract.TypeDataModel {
       movement: new SchemaField({
         base: new NumberField({ initial: 120 }),
         mod: new NumberField({ initial: 0 }),
+        // The monster sheet reads `movement.value` (a String); the system's
+        // computeAdditionnalData writes `movement.encounter` on every actor.
+        // Both exist so the sheet renders and the system's derived pass has its
+        // target — the same reason the compat stubs carry `encounter`.
+        value: new StringField({ blank: true, initial: "" }),
         encounter: new NumberField({ initial: 40 }),
       }),
       initiative: new SchemaField({
         value: int(0),
         mod: int(0),
       }),
+      // Exact monster paths — the sheet binds inputs to `surpriseothers` and
+      // `avoidsurprise`, so a subset would silently drop those on save.
       surprise: new SchemaField({
-        value: new NumberField({ initial: 14 }),
         mod: new NumberField({ initial: 0 }),
+        surpriseothers: new NumberField({ initial: 0 }),
+        avoidsurprise: new NumberField({ initial: 0 }),
+      }),
+      // A war dog IS a hired creature, and the monster sheet renders the
+      // retainer block regardless, so the animal carries it. `category` is a
+      // plain StringField, not a choice: the sheet populates the dropdown from
+      // the system's config at render, and acks-lib cannot import the system's
+      // ACKS.hireling_categories at schema-definition time. Storing the chosen
+      // string needs no validator here.
+      retainer: new SchemaField({
+        enabled: new BooleanField({ initial: false }),
+        loyalty: new NumberField({ integer: true, min: -4, max: 4, initial: 0 }),
+        wage: new StringField({ blank: true, initial: "" }),
+        managerid: new StringField({ blank: true, initial: "" }),
+        category: new StringField({ blank: true, initial: "henchman" }),
+        quantity: new NumberField({ initial: 1 }),
       }),
       ...savingThrowFields(),
 
@@ -101,6 +123,12 @@ export default class AnimalData extends foundry.abstract.TypeDataModel {
         treasure: new SchemaField({
           table: new StringField({ blank: true, initial: "" }),
           type: new StringField({ blank: true, initial: "" }),
+        }),
+        // The sheet's "number appearing" inputs (dungeon / wilderness). A herd
+        // animal has these as much as a monster does.
+        appearing: new SchemaField({
+          d: new StringField({ blank: true, initial: "" }),
+          w: new StringField({ blank: true, initial: "" }),
         }),
       }),
 
