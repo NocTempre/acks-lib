@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.21.0
+
+**A group is now MANY stacks, not one prototype.** `GroupData` held a single
+`template`/`size`/`roster`; it now holds a list of `stacks`, each with its own
+base actor, headcount, and sparse roster. A mixed unit — 10 swordsmen beside 10
+spearmen — is two stacks over two base actors, so different gear is a different
+prototype, not a per-body override, while the ActorDelta layer still handles
+divergence WITHIN a stack (one swordsman loots a better blade). Each stack keeps
+the full per-body lifecycle — materialize / deploy / recall / detach /
+casualties, HP rolled per body — so health is tracked per stack: every op takes
+a stack key, deployed tokens carry a `stack` flag so recall routes each back to
+the right roster, and the sheet shows one section per stack (drop an actor to add
+a stack, drop onto one to re-point it). Group-level fields (collective noun, unit
+wages/morale) stay shared. `migrateData` folds an existing single-stack group
+into `stacks[0]` under a fixed key, so live groups upgrade in place. No external
+consumers today (acks-troops is unbuilt), so nothing downstream moves.
+
 ## 0.15.0
 
 **The `acks-lib.group` stackable actor.** A group is many near-identical

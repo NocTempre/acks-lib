@@ -10,25 +10,50 @@
  */
 
 /**
- * The next never-used ordinal for a group. Ordinals are assigned once and never
- * reused, so "#7" always means the same body even after #3 dies — the report
- * stays legible.
- * @param {object} system - a GroupData (or its source), needs `.roster`
+ * The next never-used ordinal for a STACK. Ordinals are assigned once and never
+ * reused within a stack, so "#7" always means the same body even after #3 dies —
+ * the report stays legible.
+ * @param {object} stack - a stack (or anything with `.roster`)
  */
-export function nextOrdinal(system) {
-  const roster = system?.roster ?? [];
+export function nextOrdinal(stack) {
+  const roster = stack?.roster ?? [];
   return roster.reduce((max, m) => Math.max(max, m.ordinal ?? 0), 0) + 1;
 }
 
 /**
- * A member's display name: its own name, else the template label + ordinal.
- * @param {object} system - a GroupData with `.template.label`
+ * A member's display name: its own name, else the stack's template label +
+ * ordinal ("Swordsman #7").
+ * @param {object} stack - a stack with `.template.label`
  * @param {object} member - a roster entry
  */
-export function memberName(system, member) {
+export function memberName(stack, member) {
   if (member?.name) return member.name;
-  const label = system?.template?.label || "Member";
+  const label = stack?.template?.label || "Member";
   return `${label} #${member?.ordinal ?? "?"}`;
+}
+
+/**
+ * v0 → v1 group reshape (pure, idempotent): a single-stack group carried
+ * `template`/`size`/`roster` at the top level; fold them into `stacks[0]`. A
+ * fixed key ("primary") keeps the migration stable across the reloads before it
+ * is next saved. GroupData.migrateData wraps this and then defers to super; the
+ * pure half is here so it is offline-testable (the model needs Foundry to
+ * construct). Mutates and returns `source`.
+ */
+export function migrateGroupSource(source) {
+  if (source && typeof source === "object" && !Array.isArray(source.stacks)) {
+    if (source.template || source.roster || source.size) {
+      source.stacks = [
+        {
+          key: "primary",
+          template: source.template ?? {},
+          size: source.size ?? {},
+          roster: Array.isArray(source.roster) ? source.roster : [],
+        },
+      ];
+    }
+  }
+  return source;
 }
 
 /**

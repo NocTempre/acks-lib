@@ -17,25 +17,35 @@
  * member's individuality IS an ActorDelta source object — same shape, same
  * merge rules — and a member that has never diverged needs NO record at all.
  *
- * THE INVARIANT. `size.current` counts living bodies. The `roster` holds a
- * record ONLY for members that have become interesting (materialized, deployed
- * to the canvas, detached to their own actor, or fallen). Pristine bodies are
- * the DIFFERENCE:
+ * MANY STACKS PER GROUP. A group is not one prototype but a LIST of `stacks`.
+ * A uniform pack is one stack; a mixed unit — 10 swordsmen beside 10 spearmen —
+ * is two, each with its OWN base actor. Different gear is then just a different
+ * base actor, not a per-body override: the ActorDelta layer above still handles
+ * the divergence WITHIN a stack (one swordsman loots a better blade), while the
+ * coarse "these ten are archers, those ten are pikes" split is a second stack.
+ * Each stack is a self-contained sub-group: its own prototype, its own
+ * headcount, its own sparse roster tracking its own bodies' HP and casualties.
  *
- *     pristine = size.current − (materialized + deployed records)
+ * THE INVARIANT (per stack). `size.current` counts a stack's living bodies. Its
+ * `roster` holds a record ONLY for members that have become interesting
+ * (materialized, deployed to the canvas, detached to their own actor, or
+ * fallen). Pristine bodies are the DIFFERENCE:
  *
- * A 30-strong platoon that has never fought is `size.current: 30, roster: []`.
- * Storage is proportional to how interesting the group has become, not to its
- * headcount. That is the whole point.
+ *     pristine = stack.size.current − (materialized + deployed records)
+ *
+ * A 30-strong platoon that has never fought is one stack, `size.current: 30,
+ * roster: []`. Storage is proportional to how interesting the group has become,
+ * not to its headcount. That is the whole point.
  *
  * THE COMPAT STRATEGY is deploy/recall (see group.mjs): a deployed member is an
  * ordinary token over an ordinary actor, so combat, acks-equipment and
- * acks-formation all work on it with no special-casing. Undeployed, the stack
- * carries a REPRESENTATIVE INDIVIDUAL's stat block (one body's hp/aac/saves) so
- * the token is still attackable and shows a sensible bar — the same reason
- * `acks-lib.animal` mirrors the monster field paths (see actor-compat.mjs).
+ * acks-formation all work on it with no special-casing. Undeployed, the group
+ * carries a REPRESENTATIVE INDIVIDUAL's stat block (the FIRST stack's one-body
+ * hp/aac/saves) so the token is still attackable and shows a sensible bar — the
+ * same reason `acks-lib.animal` mirrors the monster field paths (actor-compat).
  */
 import { acksCompatStubs, savingThrowFields } from "../actor-compat.mjs";
+import { migrateGroupSource } from "../group-logic.mjs";
 
 /** A roster member's lifecycle. Records only ever exist for non-pristine bodies. */
 export const GROUP_STATE = Object.freeze({
@@ -56,51 +66,80 @@ export const GROUP_CATEGORY = Object.freeze({
 export default class GroupData extends foundry.abstract.TypeDataModel {
   /**
    * Array paths, so a sheet's FormDataExtended (numeric-keyed objects) round-trips
-   * back to arrays. The system's own models declare the same.
+   * back to arrays. Only `stacks` is form-editable at the top level; each stack's
+   * `roster` is written by the lifecycle ops (group.mjs) via explicit array
+   * writes, never through the form, so it needs no path here.
    */
-  static ARRAY_PATHS = ["roster"];
+  static ARRAY_PATHS = ["stacks"];
 
   static defineSchema() {
-    const { ArrayField, BooleanField, DocumentUUIDField, NumberField, ObjectField, SchemaField, StringField } =
-      foundry.data.fields;
+    const { ArrayField, DocumentUUIDField, NumberField, ObjectField, SchemaField, StringField } = foundry.data.fields;
     const int = (initial, opts = {}) => new NumberField({ required: true, integer: true, initial, ...opts });
     const str = (opts = {}) => new StringField({ required: false, blank: true, initial: "", ...opts });
     // Money and wages: null = "not stated" (never 0, which would claim "free").
     const coin = () => new NumberField({ required: false, nullable: true, initial: null, min: 0 });
 
+    /**
+     * ONE stack: the prototype every one of its bodies copies, a headcount, and
+     * a sparse roster. `template.uuid` points at a WORLD actor (ActorDelta needs
+     * a real world base to merge onto — a compendium entry cannot be that base),
+     * minted from `snapshot` on first deploy if absent. `snapshot` is a cached
+     * `toObject()` so the stack survives its source being deleted.
+     *
+     * NAMED `template`, NOT `prototype`: Foundry blocks `prototype` (with
+     * `__proto__` and `constructor`) as a forbidden key in dotted-path expansion
+     * — a prototype-pollution guard — so a field named `prototype` can never be
+     * written via `actor.update({"system…prototype.x": …})`; the key is silently
+     * dropped. Verified live against acks 14.0.1.
+     */
+    const stack = () =>
+      new SchemaField({
+        key: str(), // stable stack id (randomID); lifecycle ops address a stack by it
+        template: new SchemaField({
+          uuid: new DocumentUUIDField({ required: false, blank: true, nullable: true, initial: null }),
+          type: str({ initial: "monster" }), // the base actor's type: monster | character | acks-lib.animal
+          label: str(),
+          snapshot: new ObjectField(),
+          snapshotTime: int(0),
+        }),
+        size: new SchemaField({
+          current: int(0, { min: 0 }), // living bodies in THIS stack
+          initial: int(0, { min: 0 }),
+          // Ecology seam (group.mjs sizeFromEcology): a dice formula, NOT auto-rolled.
+          formula: str(),
+        }),
+        /**
+         * THE SPARSE ROSTER. One entry per body of this stack that has diverged;
+         * pristine bodies are absent by design (see the class comment's invariant).
+         */
+        roster: new ArrayField(
+          new SchemaField({
+            key: str(), // randomID, stable for the member's whole life
+            ordinal: int(0), // "Swordsman #7" — assigned once within the stack, never reused
+            name: str(), // "" → template label + ordinal at display time
+            // ActorDelta-shaped sparse override. Validated by ActorDelta when
+            // applied to a token, not here — an ObjectField holds it verbatim.
+            delta: new ObjectField(),
+            state: new StringField({ required: true, initial: "materialized", choices: GROUP_STATE }),
+            tokenUuid: str(), // while deployed
+            actorUuid: str(), // if detached to a standalone actor
+            note: str(), // free text for the report ("felled by the ogre")
+          })
+        ),
+      });
+
     return {
       // Schema-version marker, matching the system + animal convention so a
       // future migration can tell an unmigrated group from a current one.
-      _schemaVersion: new NumberField({ required: true, initial: 0, integer: true, min: 0 }),
+      // v1 introduced `stacks` (was a single top-level template/size/roster).
+      _schemaVersion: new NumberField({ required: true, initial: 1, integer: true, min: 0 }),
 
       /**
-       * The stat block every member is a copy of. `uuid` points at a WORLD actor
-       * (ActorDelta needs a real world base to merge onto — a compendium entry
-       * cannot be that base), minted from `snapshot` on first deploy if absent.
-       * `snapshot` is a cached `toObject()` so the group survives the source
-       * being deleted, and so a player with no permission to the source still
-       * sees what the group is.
-       *
-       * NAMED `template`, NOT `prototype`: Foundry blocks `prototype` (with
-       * `__proto__` and `constructor`) as a forbidden key in dotted-path
-       * expansion — a prototype-pollution guard — so a field named `prototype`
-       * can never be written via `actor.update({"system.prototype.x": …})`; the
-       * key is silently dropped. Verified live against acks 14.0.1.
+       * The stacks that make up this group. One for a uniform pack; several for a
+       * mixed unit (10 swordsmen + 10 spearmen). Each is self-contained: its own
+       * prototype, headcount, and roster with its own HP/casualty tracking.
        */
-      template: new SchemaField({
-        uuid: new DocumentUUIDField({ required: false, blank: true, nullable: true, initial: null }),
-        type: str({ initial: "monster" }), // the base actor's type: monster | character | acks-lib.animal
-        label: str(),
-        snapshot: new ObjectField(),
-        snapshotTime: int(0),
-      }),
-
-      size: new SchemaField({
-        current: int(0, { min: 0 }), // living bodies
-        initial: int(0, { min: 0 }),
-        // Ecology seam (group.mjs sizeFromEcology): a dice formula, NOT auto-rolled.
-        formula: str(),
-      }),
+      stacks: new ArrayField(stack()),
 
       /**
        * The displayed collective noun is DATA, not a hardcoded word: a *pack* of
@@ -110,26 +149,7 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
        */
       noun: str(),
 
-      /**
-       * THE SPARSE ROSTER. One entry per member that has diverged; pristine
-       * bodies are absent by design (see the class comment's invariant).
-       */
-      roster: new ArrayField(
-        new SchemaField({
-          key: str(), // randomID, stable for the member's whole life
-          ordinal: int(0), // "Kobold #7" — assigned once, never reused
-          name: str(), // "" → prototype label + ordinal at display time
-          // ActorDelta-shaped sparse override. Validated by ActorDelta when
-          // applied to a token, not here — an ObjectField holds it verbatim.
-          delta: new ObjectField(),
-          state: new StringField({ required: true, initial: "materialized", choices: GROUP_STATE }),
-          tokenUuid: str(), // while deployed
-          actorUuid: str(), // if detached to a standalone actor
-          note: str(), // free text for the report ("felled by the ogre")
-        })
-      ),
-
-      /** Unit-level bookkeeping — the mercenary/specialist half. */
+      /** Unit-level bookkeeping — the mercenary/specialist half. Shared across stacks. */
       unit: new SchemaField({
         category: new StringField({ required: true, initial: "monster", choices: GROUP_CATEGORY }),
         troopType: str(), // keys into the henchmen availability/wages tables
@@ -144,11 +164,12 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
       }),
 
       // --- The representative individual (design §8). ---
-      // The compat stubs are the FLOOR the system touches on every actor
-      // (isNew, thac0, initiative, movement, a saves stub); savingThrowFields
-      // then supplies the FULL five-save block (later keys win, so it upgrades
-      // the stub's partial saves). hp/aac/details are declared explicitly so the
-      // stack token shows one body's bar and an abstract-mode attack has a target.
+      // The GROUP token (undeployed) mirrors the FIRST stack's one-body stat
+      // block so it is attackable and shows a bar. The compat stubs are the FLOOR
+      // the system touches on every actor (isNew, thac0, initiative, movement, a
+      // saves stub); savingThrowFields then supplies the FULL five-save block
+      // (later keys win, so it upgrades the stub's partial saves). Per-stack stats
+      // otherwise live in each stack's template.snapshot.
       ...acksCompatStubs(),
       ...savingThrowFields(),
       hp: new SchemaField({
@@ -171,6 +192,19 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
   }
 
   /**
+   * v0 → v1: a single-stack group carried `template`/`size`/`roster` at the top
+   * level. Fold them into `stacks[0]` (a fixed key so the migration is stable
+   * across the reloads before it is next saved). The representative block
+   * (hp/aac/saves/details) stayed at the top level and needs no move — it still
+   * mirrors what is now the first stack.
+   * @override
+   */
+  static migrateData(source) {
+    migrateGroupSource(source);
+    return super.migrateData(source);
+  }
+
+  /**
    * The same two values the system derives for every actor, so a group is not
    * the one token on the table with an empty attack bonus or encounter speed.
    * Mirrors AnimalData.prepareDerivedData exactly.
@@ -182,35 +216,61 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
   }
 
   /* -------------------------------------------- */
-  /*  Derived roster views (pure — safe offline)   */
+  /*  Derived views (pure — safe offline)          */
   /* -------------------------------------------- */
 
-  /** Members with a record that are still living bodies of this group. */
-  get livingRecorded() {
-    return this.roster.filter((m) => m.state === "materialized" || m.state === "deployed");
+  /** Find a stack by its key. */
+  stackOf(key) {
+    return this.stacks.find((s) => s.key === key) ?? null;
+  }
+
+  /** The first stack — the one the representative-individual block mirrors. */
+  get primaryStack() {
+    return this.stacks[0] ?? null;
+  }
+
+  /** A stack's members with a record that are still living bodies. */
+  livingRecordedOf(stack) {
+    return (stack?.roster ?? []).filter((m) => m.state === "materialized" || m.state === "deployed");
   }
 
   /**
-   * Living bodies that have NO record — the sparse difference. Never negative:
-   * a corrupt world where records outnumber the headcount reads as zero pristine
-   * rather than a negative count.
+   * A stack's living bodies that have NO record — the sparse difference. Never
+   * negative: a corrupt world where records outnumber the headcount reads as
+   * zero pristine rather than a negative count.
    */
-  get pristineCount() {
-    return Math.max(0, (this.size.current ?? 0) - this.livingRecorded.length);
+  pristineCountOf(stack) {
+    return Math.max(0, (stack?.size?.current ?? 0) - this.livingRecordedOf(stack).length);
   }
 
-  /** Casualties retained for the after-action report. */
-  get dead() {
-    return this.roster.filter((m) => m.state === "dead");
+  /** A stack's casualties retained for the after-action report. */
+  deadOf(stack) {
+    return (stack?.roster ?? []).filter((m) => m.state === "dead");
+  }
+
+  /* --- group-wide aggregates --- */
+
+  /** Total living bodies across every stack. */
+  get totalCurrent() {
+    return this.stacks.reduce((n, s) => n + (s.size?.current ?? 0), 0);
+  }
+
+  /** Total pristine (recordless) bodies across every stack. */
+  get totalPristine() {
+    return this.stacks.reduce((n, s) => n + this.pristineCountOf(s), 0);
+  }
+
+  /** Total casualties across every stack. */
+  get totalDead() {
+    return this.stacks.reduce((n, s) => n + this.deadOf(s).length, 0);
   }
 
   /**
-   * The invariant that must always hold: every living-and-recorded member is a
-   * living body, so the headcount cannot be smaller than the records claiming to
-   * be alive. Callers assert this after any mutation; the sheet surfaces a
-   * warning if a hand-edited world breaks it.
+   * The invariant that must always hold in EVERY stack: a stack's headcount is
+   * never smaller than its living records. Callers assert this after any
+   * mutation; the sheet surfaces a warning if a hand-edited world breaks it.
    */
   get invariantHolds() {
-    return (this.size.current ?? 0) >= this.livingRecorded.length;
+    return this.stacks.every((s) => (s.size?.current ?? 0) >= this.livingRecordedOf(s).length);
   }
 }

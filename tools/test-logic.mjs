@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import * as vocab from "../scripts/vocab.mjs";
-import { cleanDelta, isDerivedEffect, memberName, nextOrdinal, sizeFromEcology } from "../scripts/group-logic.mjs";
+import { cleanDelta, isDerivedEffect, memberName, migrateGroupSource, nextOrdinal, sizeFromEcology } from "../scripts/group-logic.mjs";
 import { chooseAxes, mergePatch, resolveActor, rollDie, rollMenu, rollOption, seededRng } from "../scripts/template-logic.mjs";
 
 const { resolveLevelValue: R, choicesOf } = vocab;
@@ -227,11 +227,36 @@ t("nextOrdinal: one past the highest, never reused", () => {
   assert.equal(nextOrdinal({ roster: [{ ordinal: 1 }, { ordinal: 3 }] }), 4);
 });
 
-t("memberName: own name wins, else template label + ordinal", () => {
-  const sys = { template: { label: "Kobold" } };
-  assert.equal(memberName(sys, { name: "Meepo", ordinal: 4 }), "Meepo");
-  assert.equal(memberName(sys, { name: "", ordinal: 7 }), "Kobold #7");
+t("memberName: own name wins, else stack template label + ordinal", () => {
+  const stack = { template: { label: "Kobold" } };
+  assert.equal(memberName(stack, { name: "Meepo", ordinal: 4 }), "Meepo");
+  assert.equal(memberName(stack, { name: "", ordinal: 7 }), "Kobold #7");
   assert.equal(memberName({ template: {} }, { ordinal: 2 }), "Member #2");
+});
+
+t("nextOrdinal + memberName address ONE stack's roster (per-stack numbering)", () => {
+  const swords = { template: { label: "Swordsman" }, roster: [{ ordinal: 1 }, { ordinal: 2 }] };
+  const spears = { template: { label: "Spearman" }, roster: [{ ordinal: 1 }] };
+  assert.equal(nextOrdinal(swords), 3);
+  assert.equal(nextOrdinal(spears), 2, "each stack numbers its own bodies");
+  assert.equal(memberName(swords, { ordinal: 3 }), "Swordsman #3");
+  assert.equal(memberName(spears, { ordinal: 2 }), "Spearman #2");
+});
+
+t("migrateGroupSource: v0 single-stack folds into stacks[0], v1 is left alone", () => {
+  // v0: template/size/roster at the top level → stacks[0] with a stable key.
+  const v0 = { template: { label: "Kobold", uuid: "Actor.x" }, size: { current: 30 }, roster: [{ key: "m1", ordinal: 1 }] };
+  const out = migrateGroupSource(v0);
+  assert.equal(out.stacks.length, 1);
+  assert.equal(out.stacks[0].key, "primary");
+  assert.equal(out.stacks[0].template.label, "Kobold");
+  assert.equal(out.stacks[0].size.current, 30);
+  assert.equal(out.stacks[0].roster[0].key, "m1");
+  // Idempotent: a doc that already has stacks is untouched (no double-wrap).
+  const v1 = { stacks: [{ key: "a" }, { key: "b" }] };
+  assert.equal(migrateGroupSource(v1).stacks.length, 2);
+  // A bare/new source with no legacy fields gets no stacks injected.
+  assert.equal("stacks" in migrateGroupSource({}), false);
 });
 
 t("isDerivedEffect: a module-managed effect is derived, an authored one is not", () => {
