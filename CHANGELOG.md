@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.23.0
+
+**The troops addendum gets real mechanics — command capacity and unit morale.**
+Beyond the officer link, a stack now carries `mounted` (cavalry count double
+toward command) and `baseMorale` (the troop type's RR 166 base), and `unit`
+caches `officerLevel`. `GroupData` derives them into RAW skirmish rules:
+`troopStrength` (infantry-equivalents), `commandCapacity` (RR 169 "personally
+led": 3rd+ level = a platoon of 30 inf / 15 cav, 2nd = half-platoon, 1st = a
+squad — `platoonCapacity` in `group-logic.mjs`, unit-tested), `overCommand` (the
+group is larger than its officer can lead), and `unitMoraleOf(stack)` (troop base
++ officer + leader modifiers, clamped to RR 166 −4..+4). The group exposes the
+morale VALUE; the 2d6 roll belongs to the morale owner (acks-influence). Past a
+platoon the multi-unit army command structure is acks-troops, not skirmish scale.
+
 ## 0.22.0
 
 **Group troops addendum: a commanding officer.** `unit` gains `officerUuid` (the

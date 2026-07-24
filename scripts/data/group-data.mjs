@@ -45,7 +45,7 @@
  * same reason `acks-lib.animal` mirrors the monster field paths (actor-compat).
  */
 import { acksCompatStubs, savingThrowFields } from "../actor-compat.mjs";
-import { migrateGroupSource } from "../group-logic.mjs";
+import { migrateGroupSource, platoonCapacity } from "../group-logic.mjs";
 
 /** A roster member's lifecycle. Records only ever exist for non-pristine bodies. */
 export const GROUP_STATE = Object.freeze({
@@ -108,6 +108,12 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
           // Ecology seam (group.mjs sizeFromEcology): a dice formula, NOT auto-rolled.
           formula: str(),
         }),
+        // Troops addendum (skirmish scale). `mounted` bodies count DOUBLE toward
+        // the RR 169 command capacity (a platoon is 30 infantry OR 15 cavalry).
+        // `baseMorale` is this troop type's RR 166 base (−2..+2, demi-humans +1);
+        // the consumer sets both from the mercenary rules at hire.
+        mounted: new foundry.data.fields.BooleanField({ initial: false }),
+        baseMorale: int(0, { min: -4, max: 4 }),
         /**
          * THE SPARSE ROSTER. One entry per body of this stack that has diverged;
          * pristine bodies are absent by design (see the class comment's invariant).
@@ -165,6 +171,9 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
         // units an officer leads across an army) is acks-troops, not here.
         officerUuid: str(),
         officerMoraleBonus: int(0, { min: 0, max: 4 }),
+        // The commander's level (cached from the officer, or the personally-leading
+        // employer) — drives the RR 169 "personally led" command capacity.
+        officerLevel: int(0, { min: 0 }),
         // Unit morale / loyalty (mercenary side). Same signed range the system
         // uses for a monster's morale and a retainer's loyalty.
         morale: int(0, { min: -6, max: 4 }),
@@ -283,9 +292,40 @@ export default class GroupData extends foundry.abstract.TypeDataModel {
   }
 
   /** Unit morale including the commanding officer's RR 171 modifier (skirmish
-   *  scale). Clamped to the same signed band unit morale uses. */
+   *  scale). Clamped to the same signed band unit morale uses. `unit.morale`
+   *  carries the employer's leader modifiers (CHA, Command, led-by-5th …) that
+   *  the consumer computes; a stack's own troop-type base is added per stack. */
   get commandMorale() {
     const m = (this.unit?.morale ?? 0) + (this.unit?.officerMoraleBonus ?? 0);
-    return Math.max(-6, Math.min(4, m));
+    return Math.max(-4, Math.min(4, m));
+  }
+
+  /** One stack's effective morale: its troop-type base + the shared leader
+   *  modifiers (employer + officer). Clamped to the RR 166 −4..+4 band. */
+  unitMoraleOf(stack) {
+    return Math.max(-4, Math.min(4, (stack?.baseMorale ?? 0) + this.commandMorale));
+  }
+
+  /* --- RR 169 command capacity (skirmish "personally led") --- */
+
+  /** Group strength in INFANTRY-EQUIVALENTS: living bodies, cavalry counted
+   *  double (a platoon is 30 infantry OR 15 cavalry). */
+  get troopStrength() {
+    return this.stacks.reduce((n, s) => n + (s.size?.current ?? 0) * (s.mounted ? 2 : 1), 0);
+  }
+
+  /** How many infantry-equivalents the commanding officer may personally lead
+   *  (RR 169), from the cached commander level. 0 = no valid commander. */
+  get commandCapacity() {
+    return platoonCapacity(this.unit?.officerLevel ?? 0);
+  }
+
+  /** True when the group is larger than its commander can personally lead — it
+   *  needs a higher-level officer, or (past a platoon) the multi-unit army
+   *  command structure that is acks-troops, not skirmish scale. A group with
+   *  troops but no commander (capacity 0) is over-command by definition. */
+  get overCommand() {
+    const cap = this.commandCapacity;
+    return cap > 0 ? this.troopStrength > cap : this.troopStrength > 0;
   }
 }

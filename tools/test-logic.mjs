@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import * as vocab from "../scripts/vocab.mjs";
-import { cleanDelta, isDerivedEffect, memberName, migrateGroupSource, nextOrdinal, sizeFromEcology } from "../scripts/group-logic.mjs";
+import { cleanDelta, isDerivedEffect, memberName, migrateGroupSource, nextOrdinal, platoonCapacity, sizeFromEcology } from "../scripts/group-logic.mjs";
 import { chooseAxes, mergePatch, resolveActor, rollDie, rollMenu, rollOption, seededRng } from "../scripts/template-logic.mjs";
 
 const { resolveLevelValue: R, choicesOf } = vocab;
@@ -241,6 +241,14 @@ t("nextOrdinal + memberName address ONE stack's roster (per-stack numbering)", (
   assert.equal(nextOrdinal(spears), 2, "each stack numbers its own bodies");
   assert.equal(memberName(swords, { ordinal: 3 }), "Swordsman #3");
   assert.equal(memberName(spears, { ordinal: 2 }), "Spearman #2");
+});
+
+t("platoonCapacity: RR 169 personally-led limit by commander level", () => {
+  assert.equal(platoonCapacity(4), 30, "a lieutenant (4th) leads a platoon");
+  assert.equal(platoonCapacity(3), 30, "3rd+ = a platoon");
+  assert.equal(platoonCapacity(2), 15, "2nd = a half-platoon");
+  assert.equal(platoonCapacity(1), 7, "1st = a squad (interpretation)");
+  assert.equal(platoonCapacity(0), 0, "0th cannot lead mercenaries into danger");
 });
 
 t("migrateGroupSource: v0 single-stack folds into stacks[0], v1 is left alone", () => {

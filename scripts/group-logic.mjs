@@ -33,6 +33,26 @@ export function memberName(stack, member) {
 }
 
 /**
+ * RR 169 "personally led" command capacity, in INFANTRY-EQUIVALENTS, by the
+ * commander's level: a 3rd+ level leader may personally lead a platoon (30
+ * infantry / 15 cavalry), 2nd a half-platoon (15), 1st a squad. Cavalry count
+ * double toward the limit, so the group's strength and this capacity are both in
+ * infantry-equivalents. 0th level cannot lead mercenaries into danger at all.
+ *
+ * NOTE the squad (1st-level) size is not in the local RR extract; 7 is used as a
+ * documented interpretation (half of a half-platoon) until the Domains at War
+ * value is confirmed. It only bites a 1st-level PC personally leading — hired
+ * mercenary officers are all 4th+ level, so they always grant the full platoon.
+ */
+export function platoonCapacity(level) {
+  const L = Number(level) || 0;
+  if (L >= 3) return 30;
+  if (L === 2) return 15;
+  if (L === 1) return 7;
+  return 0;
+}
+
+/**
  * v0 → v1 group reshape (pure, idempotent): a single-stack group carried
  * `template`/`size`/`roster` at the top level; fold them into `stacks[0]`. A
  * fixed key ("primary") keeps the migration stable across the reloads before it
