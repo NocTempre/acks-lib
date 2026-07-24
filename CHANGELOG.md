@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.14.0
+
+**`speedsField` gains the full ACKS Speed row.** It described only
+`{ type, run }` — an incomplete guess at the monster Speed table, and unused by
+anything. It now carries `combat` (the encounter/combat speed, ⅓ of running) and
+`hover` (whether a flyer can hover) alongside `type`/`run`, matching what a
+creature's speed line actually holds, so acks-monsters can adopt it in place of
+its own inline copy. `sensesField` and `visionField` were already the exact
+shapes acks-monsters uses. Additive — the field had no consumers, so nothing
+migrates.
+
 ## 0.13.0
 
 **`NATURAL_WEAPONS` becomes the family superset.** acks-monsters kept its own

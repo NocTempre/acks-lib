@@ -139,8 +139,18 @@ export function defensesField() {
 }
 
 /* --- Movement / senses / vision (shapes shared w/ monster Speed & Senses) --- */
+// One Speed-table row: the ACKS split of encounter/combat speed (⅓ of running)
+// and running speed, plus whether a flyer can hover. num() is nullable, so a
+// blank cell reads as "unspecified", never a real 0.
 export const speedsField = () =>
-  new (F().ArrayField)(new (F().SchemaField)({ type: choice(MOVEMENT_TYPES, { initial: "land" }), run: num({ integer: true }) }));
+  new (F().ArrayField)(
+    new (F().SchemaField)({
+      type: choice(MOVEMENT_TYPES, { initial: "land" }),
+      combat: num({ integer: true }),
+      run: num({ integer: true }),
+      hover: bool(false),
+    }),
+  );
 export const sensesField = () =>
   new (F().ArrayField)(
     new (F().SchemaField)({ type: choice(SENSE_TYPES, { initial: "acuteHearing" }), range: num({ integer: true }), note: str() }),
