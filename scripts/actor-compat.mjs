@@ -75,17 +75,24 @@ export function acksCompatStubs() {
  */
 export function savingThrowFields() {
   const { NumberField, SchemaField } = F();
-  // Initials mirror the system's own SavingThrowsTemplate exactly, so an animal
-  // rolled straight out of the box saves like any other fresh creature rather
-  // than at some number this library invented.
+  // Keys and initials mirror the RELEASED acks system's saving-throw schema
+  // exactly, verified live against a fresh monster in acks 14.0.1:
+  // {paralysis:13, death:14, breath:15, implements:16, spell:17, wand:16} + save.mod.
+  // So an animal reuses the system's monster SHEET with every save field present
+  // (the sheet reads `saves.breath` and `saves.wand`; a `blast` key — the
+  // system's DEV-branch rename that has NOT shipped — would leave the sheet's
+  // Blast box blank and add a stray field). Flip breath→blast and drop wand
+  // only when the system RELEASES that migration; the modules target the
+  // released system, not its dev branch.
   const save = (initial) => new SchemaField({ value: new NumberField({ required: true, initial }) });
   return {
     saves: new SchemaField({
       paralysis: save(13),
       death: save(14),
-      blast: save(15),
+      breath: save(15),
       implements: save(16),
       spell: save(17),
+      wand: save(16),
     }),
     save: new SchemaField({ mod: new NumberField({ initial: 0 }) }),
   };

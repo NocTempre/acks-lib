@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.1
+
+**Animal saves match the RELEASED system, not its dev branch.** `savingThrowFields()`
+built the animal sub-type's saves as {paralysis, death, blast, implements, spell},
+copied from foundryvtt-acks-core's unreleased master. But the running system
+(acks 14.0.1) stores saves as {paralysis, death, breath, implements, spell, wand}
+— verified live against a fresh monster. So an animal reusing the monster sheet
+had a blank Blast box (the sheet reads `saves.breath`; the animal had `blast`)
+and a missing Wand save. Now mirrors the released schema exactly (breath + wand);
+flip to blast when the system RELEASES that rename. Caught by live-testing the
+consolidation — the offline mocks and the dev source both said blast.
+
 ## 0.8.2
 
 - Add the `url` field to the manifest (GitHub repo link), matching the rest of
