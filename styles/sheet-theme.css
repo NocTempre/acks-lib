@@ -91,47 +91,59 @@ body.acks-lib-sheet-theme .acks.sheet.item .sheet-tabs .item.active {
   color: var(--acks-cream);
 }
 
-/* --- Sheet ground: neutral light gray in place of the papyrus webp. --- */
-body.acks-lib-sheet-theme .acks.sheet.actor {
+/* --- Sheet ground --------------------------------------------------------
+   The printed sheet is a light gray page, so LIGHT-schemed seats get paper
+   grounds and white boxed fields. A DARK-schemed seat keeps Foundry's dark
+   surfaces — forcing white fields under dark-theme text made them illegible
+   — and takes only the boxing, banners and typography. Foundry marks the
+   client scheme as body.theme-dark; light-only rules use :not(.theme-dark)
+   so an unthemed client still reads as the printed page. --- */
+body.acks-lib-sheet-theme:not(.theme-dark) .acks.sheet.actor {
   background: var(--acks-paper);
 }
 
-body.acks-lib-sheet-theme .acks.sheet.actor .window-content {
+body.acks-lib-sheet-theme:not(.theme-dark) .acks.sheet.actor .window-content {
   background: var(--acks-paper);
 }
 
-/* The released system's v2 sheets (actor-v2 / item-v2) ride Foundry's theme
-   ground; the printed sheet is a light gray page, so give them the same. */
-body.acks-lib-sheet-theme .sheet.acks.actor-v2 .window-content,
-body.acks-lib-sheet-theme .sheet.acks.item-v2 .window-content {
+body.acks-lib-sheet-theme:not(.theme-dark) .sheet.acks.actor-v2 .window-content,
+body.acks-lib-sheet-theme:not(.theme-dark) .sheet.acks.item-v2 .window-content {
   background: var(--acks-paper);
   color: var(--acks-ink);
 }
 
-/* --- Fields: white boxes with a thin dark rule, as printed. --- */
-body.acks-lib-sheet-theme .acks .window-content input:not([type="checkbox"]) {
+/* --- Fields: boxed by a thin rule, as printed. Light seats get the white
+   box with dark ink; dark seats keep a dark box and their own text color. */
+body.acks-lib-sheet-theme:not(.theme-dark) .acks .window-content input:not([type="checkbox"]) {
   background: var(--acks-field);
   border: 1px solid var(--acks-ink);
   border-radius: 2px;
-  color: var(--input-text-color);
+  color: var(--acks-ink);
+}
+
+body.acks-lib-sheet-theme.theme-dark .acks .window-content input:not([type="checkbox"]) {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
 }
 
 body.acks-lib-sheet-theme .acks .window-content input:not([type="checkbox"]):hover:not(:disabled),
 body.acks-lib-sheet-theme .acks .window-content input:not([type="checkbox"]):focus:not(:disabled) {
   box-shadow: 0 0 3px var(--acks-maroon);
-  background: var(--acks-field);
   border-color: var(--acks-maroon);
 }
 
 /* Inputs drawn over artwork (shield, hearts) or inside tight spinner rows
-   stay unboxed — a white field would cover the art. */
+   stay unboxed — a field box would cover the art. !important because these
+   guards must beat both the light and dark field rules above regardless of
+   selector arithmetic. */
 body.acks-lib-sheet-theme .acks.sheet.actor.character .sheet-body .health input,
 body.acks-lib-sheet-theme .acks .window-content input.health-top,
 body.acks-lib-sheet-theme .acks .window-content input.health-bottom,
 body.acks-lib-sheet-theme .acks .window-content .field-long.memorize input,
 body.acks-lib-sheet-theme .acks .window-content .field-short.quantity input {
-  background: transparent;
-  border: none;
+  background: transparent !important;
+  border: none !important;
 }
 
 body.acks-lib-sheet-theme .acks.sheet.actor.character .sheet-body .health input:hover:not(:disabled),
@@ -148,7 +160,7 @@ body.acks-lib-sheet-theme .acks.sheet.item .sheet-header .tag-list .tag {
   color: var(--acks-cream);
 }
 
-body.acks-lib-sheet-theme .acks.sheet.actor.character .encumbrance {
+body.acks-lib-sheet-theme:not(.theme-dark) .acks.sheet.actor.character .encumbrance {
   background: var(--acks-paper);
 }
 

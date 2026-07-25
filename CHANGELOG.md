@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.25.0
+
+**Sheet theme goes scheme-aware — no more white fields on dark seats.** The
+printed paper ground and white boxed fields now apply only when the client
+runs a light scheme (`body:not(.theme-dark)`, so an unthemed client still
+reads as the printed page), and their text is forced to ink rather than
+following a theme variable (light-on-white was illegible). A dark-schemed
+seat keeps Foundry's dark surfaces and text and takes the printed look's
+boxing (translucent dark fields with a subtle light rule), maroon banners,
+and small-caps typography. Artwork-overlay inputs (shield/hearts, spinner
+rows) are guarded with `!important` so neither field rule can box them.
+
 ## 0.24.0
 
 **Printed-character-sheet theme.** New `styles/sheet-theme.css`, scoped under
