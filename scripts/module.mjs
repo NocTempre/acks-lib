@@ -51,7 +51,7 @@ export const TEMPLATE_TYPE = `${MODULE_ID}.template`;
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
-  apiVersion: 9,
+  apiVersion: 10,
   vocab,
   fields,
   resolveLevelValue,

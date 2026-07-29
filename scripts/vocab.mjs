@@ -108,6 +108,23 @@ export const ALIGNMENTS = {
   chaotic: { label: "Chaotic" },
 };
 
+/**
+ * The six ability scores, keyed by the CORE system's own data paths so a
+ * consumer can read `actor.system.scores[key].mod` straight from the key.
+ *
+ * ACKS II renames Wisdom to Will, but the system still stores it under `wis`;
+ * the label carries the book's name so a sheet never shows "WIS" for a rule
+ * printed as WIL.
+ */
+export const ATTRIBUTES = {
+  str: { label: "STR" },
+  int: { label: "INT" },
+  wis: { label: "WIL" },
+  dex: { label: "DEX" },
+  con: { label: "CON" },
+  cha: { label: "CHA" },
+};
+
 /** Movement types; the multi-row Speed table (MM Overview p.11). */
 export const MOVEMENT_TYPES = {
   land: { label: "Land" },
@@ -158,6 +175,11 @@ export const PROFICIENCY_BREADTH = {
 /** The typed effect primitives an ability's `effects[]` may hold. */
 export const EFFECT_TYPES = {
   modifier: { label: "Modifier" }, // flat/level-scaling bonus OR penalty to a target
+  // "apply her WIL modifier instead of her STR modifier on any damage roll" —
+  // NOT a modifier. It changes which score feeds a roll, so its size is the
+  // difference between two of the character's own scores and cannot be written
+  // as a number at all. Stored as {attribute, insteadOf, target}.
+  attributeSubstitution: { label: "Attribute Substitution" },
   throw: { label: "Proficiency Throw" }, // a target-number roll
   progressionAs: { label: "Progresses As Class" }, // "as a thief of his level"
   proficiencyGrant: { label: "Proficiency Grant" }, // weapon/armor/fighting-style proficiency
@@ -178,6 +200,10 @@ export const EFFECT_TYPES = {
   spellcastingMod: { label: "Spellcasting Modifier" },
   resource: { label: "Resource" }, // spend/gain fate points, spell slots, etc.
   conditionGrant: { label: "Condition / Immunity" },
+  // The other direction: an ability that LIFTS a condition already in place
+  // ("if he lays hands on a paralyzed creature, he can cure the paralysis").
+  // Stored as `conditions` + `appliesTo`, the same fields conditionGrant uses.
+  conditionRemove: { label: "Removes Condition" },
   economic: { label: "Economic / Rate" },
   capability: { label: "Capability" }, // marker; detail lives in the (lazy) description
 };
@@ -208,6 +234,10 @@ export const MODIFIER_TARGETS = {
   surprise: { label: "Surprise" },
   morale: { label: "Morale" },
   loyalty: { label: "Loyalty" },
+  // Its own d20 roll in ACKS II, not a saving throw. Lay on Hands grants a
+  // bonus to it; filing that under `save` would misname the roll a Judge is
+  // told to make.
+  mortalWounds: { label: "Mortal Wounds Throw" },
   speed: { label: "Speed" },
   proficiencyThrow: { label: "Proficiency Throw" },
   casterLevel: { label: "Caster Level" },
@@ -570,6 +600,16 @@ export const VALUE_SCALES = {
   hitDice: { label: "Hit Dice" },
 };
 
+/**
+ * How a fractional level-scaled value is rounded. The books always print the
+ * rounding beside the fraction ("one-half his class level (round up)"), so it
+ * is part of the rule, not a display choice. Absent means no rounding.
+ */
+export const VALUE_ROUNDING = {
+  up: { label: "Round Up" },
+  down: { label: "Round Down" },
+};
+
 /* ---------------------------------------------------------------- */
 /*  LevelValue — the level-scaling spine                             */
 /* ---------------------------------------------------------------- */
@@ -587,6 +627,11 @@ export const VALUE_SCALES = {
  * into it changes, from class level to `scales[on]`. So `atLevel` reads "at
  * this value of `on`", and one array shape covers both.
  *
+ * `round` ("up" | "down") applies to whatever the shape produces, because a
+ * fraction is only ever printed with its rounding attached — the paladin's Lay
+ * on Hands grants a Mortal Wounds bonus of "one-half his class level (round
+ * up)", i.e. { kind:"perLevel", base:0.5, per:0.5, round:"up" }.
+ *
  * `resolveLevelValue` returns the numeric value at `level`, or `null` when it
  * needs something the caller must supply — an external progression table (kind
  * "progression") or a scale absent from `scales` (kind "conditional"). Pure and
@@ -597,6 +642,10 @@ export function resolveLevelValue(lv, level = 1, scales = {}) {
   if (typeof lv === "number") return lv;
   if (typeof lv !== "object") return null;
   const kind = lv.kind ?? inferLevelKind(lv);
+  return applyRounding(rawLevelValue(lv, kind, level, scales), lv.round);
+}
+
+function rawLevelValue(lv, kind, level, scales) {
   switch (kind) {
     case "flat":
       return lv.flat ?? null;
@@ -613,6 +662,14 @@ export function resolveLevelValue(lv, level = 1, scales = {}) {
     default:
       return null;
   }
+}
+
+/** Round as the page prints it. No `round` means the value is already exact. */
+function applyRounding(value, round) {
+  if (value == null || !Number.isFinite(value)) return value;
+  if (round === "up") return Math.ceil(value);
+  if (round === "down") return Math.floor(value);
+  return value;
 }
 
 /** The last breakpoint value `at` reaches, or null below the first one. */

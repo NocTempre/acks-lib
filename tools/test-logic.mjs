@@ -63,6 +63,32 @@ t("resolveLevelValue: breakpoints (+1/+2/+3 @1/7/13)", () => {
   assert.equal(R(lv, 13), 3);
 });
 
+t("resolveLevelValue: round up — half class level, as the page prints it", () => {
+  // Lay on Hands: "a bonus to their Mortal Wounds throw of one-half his class
+  // level (round up)". Unrounded this reads 2.5 at 5th level, a number the
+  // rule never produces.
+  const lv = { kind: "perLevel", base: 0.5, per: 0.5, round: "up" };
+  assert.equal(R(lv, 1), 1);
+  assert.equal(R(lv, 4), 2);
+  assert.equal(R(lv, 5), 3);
+  assert.equal(R(lv, 14), 7);
+  assert.equal(R({ ...lv, round: "down" }, 5), 2);
+  assert.equal(R({ ...lv, round: "" }, 5), 2.5, "no rounding leaves the fraction alone");
+});
+
+t("resolveLevelValue: rounding also applies to a ladder", () => {
+  const lv = { breakpoints: [{ atLevel: 1, value: 1.5 }], round: "up" };
+  assert.equal(R(lv, 3), 2);
+});
+
+t("ATTRIBUTES key on the core system's own score paths", () => {
+  // A consumer must be able to read system.scores[key].mod straight from the
+  // key; ACKS II's WIL is the system's `wis`, and the label says so.
+  assert.deepEqual(Object.keys(vocab.ATTRIBUTES), ["str", "int", "wis", "dex", "con", "cha"]);
+  assert.equal(vocab.ATTRIBUTES.wis.label, "WIL");
+  assert.ok(vocab.EFFECT_TYPES.attributeSubstitution, "the substitution primitive is a real effect type");
+});
+
 t("resolveLevelValue: progression defers to external table", () => {
   assert.equal(R({ kind: "progression", as: "thief", atLevel: "full" }, 5), null);
 });

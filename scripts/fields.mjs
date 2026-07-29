@@ -10,6 +10,7 @@
 import {
   choicesOf,
   ALIGNMENTS,
+  ATTRIBUTES,
   INFLUENCE_TONES,
   SCOPE_ALIGNMENT_MODES,
   DAMAGE_TYPES,
@@ -31,6 +32,7 @@ import {
   ROLL_TYPES,
   REROLL_KEEP,
   VALUE_SCALES,
+  VALUE_ROUNDING,
 } from "./vocab.mjs";
 
 const F = () => foundry.data.fields;
@@ -73,6 +75,11 @@ export function levelValueField() {
     // "at this value of `on`" rather than at this class level.
     breakpoints: new ArrayField(new SchemaField({ atLevel: num({ integer: true }), value: num() })),
     on: choice(VALUE_SCALES), // conditional: which scale the ladder is keyed on
+    // Fractional per-level values are printed with their rounding — "a bonus
+    // to their Mortal Wounds throw of one-half his class level (round up)".
+    // Without this the value resolves to 2.5 at 5th level, which is not a
+    // number the rule ever produces.
+    round: choice(VALUE_ROUNDING),
     as: choice(PROGRESSION_CLASSES),
     atLevel: choice(PROGRESSION_LEVELS),
   });
@@ -172,6 +179,16 @@ export function effectField() {
     appliesTo: choice(EFFECT_SUBJECTS, { initial: "self" }),
     roll: str(), // e.g. "1d20"
     rollType: choice(ROLL_TYPES),
+    /* --- attributeSubstitution ---
+     * `attribute` is applied INSTEAD OF `insteadOf` on `target`. Both are
+     * ATTRIBUTES keys, which are the core system's own score paths, so a
+     * consumer swaps `system.scores[insteadOf].mod` for
+     * `system.scores[attribute].mod` without a translation table. The rule is
+     * always narrowed in prose (Weapon Finesse: tiny/small/medium melee
+     * weapons; the bladedancer's: weapons she is proficient with) — that
+     * narrowing lives in `condition`, as it does for every other effect. */
+    attribute: choice(ATTRIBUTES),
+    insteadOf: choice(ATTRIBUTES),
     // progressionAs
     as: choice(PROGRESSION_CLASSES),
     atLevel: choice(PROGRESSION_LEVELS),
