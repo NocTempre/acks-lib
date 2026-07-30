@@ -1,7 +1,7 @@
 {
   "ACKS-LIB.Title": "ACKS II — Library",
   "ACKS-LIB.settings.sheetTheme.name": "Character-sheet theme",
-  "ACKS-LIB.settings.sheetTheme.hint": "Style the ACKS windows like the printed ACKS II character sheet: maroon banners with small-caps lettering, light gray sheet, white boxed fields. Per player.",
+  "ACKS-LIB.settings.sheetTheme.hint": "Style the ACKS windows like the printed ACKS II character sheet: burgundy banners with small-caps lettering, gray sheet, white boxed fields. Per player.",
   "TYPES.Actor.acks-lib.animal": "Animal",
   "ACKS-LIB.animal.training.untrained": "Untrained",
   "ACKS-LIB.animal.training.riding": "Riding",

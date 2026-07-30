@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.27.0
+
+**The sheet theme moves onto the measured ACKS II palette.** `--acks-maroon:
+#5c1f2b` and the cream banner lettering were *texture averages* of the sheet's
+raster banner artwork — anti-aliased white over speckled stone reads as cream,
+and the stone's mean reads as a muddy maroon — not colours the artwork
+specifies. Measurement of the vector fills across all four core books plus the
+character sheet gives a flat spot value of `#620730` (90% of all stroked line
+work in the corpus), `#231f20` ink, a `#e6e7e8` sheet ground, and reversed
+*white* banner lettering. The theme now carries those. The system's own
+`--acks-purple` was already `#620630` — one channel unit away — so the old
+palette here was overriding correct core chrome with an approximation.
+
+The spot colour is now split into the two roles it actually plays:
+`--acks-burgundy` for surfaces (bands, tags, active tabs, fills) and
+`--acks-spot` for ink (borders, focus rings). They are one value in light and
+deliberately diverge on a dark seat (`#8e1442` / `#e79bab`), because a surface
+must stay dark enough to carry white banner text while ink must come up light
+enough to read on a dark ground. The old single value, reused as a focus border
+there, measured 1.46:1; it is now 7.9:1. The banner's hardcoded `url()` into the
+system's own assets is replaced by a procedural porphyry gradient built from the
+measured tonal stops, so the layer no longer reaches into another package's
+private layout and the band follows the token.
+
+**Fixed:** core ships an `.acks.sheet.actor` + `.window-header` rule at
+specificity (0,4,0) that out-specified the theme's header rule (0,2,1), and
+being a `background` shorthand it reset `background-image: none` — so the
+banner texture never reached actor-sheet headers, only item sheets and dialogs.
+The colour still looked right, because core reads the remapped `--acks-purple`,
+which is what hid it.
+
+Values and role discipline follow the measured token set in `acks-design`,
+adopted as a contract rather than imported: that system is scoped to `.acks-ui`
+on an application root the consuming module owns, while this layer restyles
+markup owned by the `acks` system and loads unconditionally. Nothing is
+vendored, so the theme still ships no fonts and stays inert until
+`body.acks-lib-sheet-theme` lands.
+
 ## 0.25.0
 
 **Sheet theme goes scheme-aware — no more white fields on dark seats.** The
