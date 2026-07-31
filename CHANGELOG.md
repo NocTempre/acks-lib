@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.34.0
+
+- **The weapon strip lists every weapon class (plus unarmed), lit by coverage.**
+  0.33.0 showed the breadth ladder itself; the pills are now the classes — unarmed,
+  axes, swords & daggers, flails/hammers/maces, spears & polearms, bows, crossbows,
+  other — and the class-build selection lights the ones it *covers*, since one
+  selection routinely covers several. Read through acks-equipment's documented
+  token grammar: `all` lights everything, `melee:<size>` every melee class,
+  `missile:all` every missile class, a category token its own class, and a bare
+  weapon key the class that weapon belongs to. Unarmed always lights (anyone may
+  strike unarmed) and golds with Unarmed Fighting. Verified: `axe` → UN+AX only;
+  `melee:medium` → every melee class but no bows; `club,dagger,sling` → swords &
+  daggers plus other.
+
 ## 0.33.0
 
 - **The build strips now show the JJ class-build selections, and sit across the

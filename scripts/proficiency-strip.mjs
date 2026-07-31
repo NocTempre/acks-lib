@@ -27,15 +27,24 @@ const STYLES = [
 ];
 
 /**
- * Weapon SELECTION ladder — the class-build choice (JJ p. 290), not a list of
- * weapon groups: a class picks restricted / narrow / broad / unrestricted, and
- * everything at or below that breadth is available.
+ * Every weapon class a character can be proficient with, plus unarmed. These are
+ * the pills; the class-build SELECTION (JJ p. 290) decides which light up, and a
+ * single selection routinely covers several of them — "all melee of medium size
+ * or smaller" lights every melee class, a narrow grouping lights one.
+ *
+ * Two of the classes are themselves plural groupings in the books (flails/
+ * hammers/maces, swords/daggers), which is why these are classes rather than
+ * individual weapons.
  */
-const WEAPON_BREADTH = [
-  { key: "restricted", icon: "fas fa-lock", label: "ACKS-LIB.breadth.restricted", fallback: "Restricted" },
-  { key: "narrow", icon: "fas fa-angle-right", label: "ACKS-LIB.breadth.narrow", fallback: "Narrow" },
-  { key: "broad", icon: "fas fa-angles-right", label: "ACKS-LIB.breadth.broad", fallback: "Broad" },
-  { key: "unrestricted", icon: "fas fa-infinity", label: "ACKS-LIB.breadth.unrestricted", fallback: "Unrestricted" },
+const WEAPON_CLASSES = [
+  { key: "unarmed", chip: "UN", melee: true, label: "ACKS-LIB.weaponCat.unarmed", fallback: "Unarmed" },
+  { key: "axe", chip: "AX", melee: true, label: "ACKS-LIB.weaponCat.axe", fallback: "Axes" },
+  { key: "sworddagger", chip: "SW", melee: true, label: "ACKS-LIB.weaponCat.swordDagger", fallback: "Swords & Daggers" },
+  { key: "flailhammermace", chip: "MC", melee: true, label: "ACKS-LIB.weaponCat.flailHammerMace", fallback: "Flails, Hammers & Maces" },
+  { key: "spearpolearm", chip: "SP", melee: true, label: "ACKS-LIB.weaponCat.spearPolearm", fallback: "Spears & Polearms" },
+  { key: "bow", chip: "BW", missile: true, label: "ACKS-LIB.weaponCat.bow", fallback: "Bows" },
+  { key: "crossbow", chip: "XB", missile: true, label: "ACKS-LIB.weaponCat.crossbow", fallback: "Crossbows" },
+  { key: "other", chip: "OT", melee: true, missile: true, label: "ACKS-LIB.weaponCat.other", fallback: "Other (slings, staffs, nets, whips…)" },
 ];
 
 /** Armour SELECTION ladder (JJ p. 290), lightest first — five rungs, not four. */
@@ -48,19 +57,42 @@ const ARMOUR = [
 ];
 
 /**
- * Breadth of a weapon-proficiency token set, read through acks-equipment's own
- * documented grammar (proficiency.mjs): `all` is unrestricted; `missile:all` and
- * `melee:<size>` are the broad choices; a category token is narrow; bare weapon
- * keys are the restricted list.
+ * Which weapon CLASSES a proficiency token set covers, read through
+ * acks-equipment's own documented grammar (proficiency.mjs):
+ *   all            → every class
+ *   melee:<size>   → every melee class (a broad choice; size is per-weapon and
+ *                    cannot be expressed at class granularity)
+ *   missile:all    → every missile class
+ *   <category>     → that class
+ *   <weaponKey>    → the class that weapon belongs to (via the profile table)
+ * Unarmed is always available — anyone may strike unarmed — so it lights for
+ * every character and golds only with the Unarmed Fighting proficiency.
  */
-const CATEGORY_TOKENS = new Set(["axe", "bow", "crossbow", "flailhammermace", "sworddagger", "spearpolearm", "other"]);
-function breadthOf(all, tokens) {
-  if (all) return "unrestricted";
-  const raw = [...tokens];
-  if (!raw.length) return null;
-  if (raw.some((t) => t.startsWith("missileall") || t.startsWith("melee"))) return "broad";
-  if (raw.some((t) => CATEGORY_TOKENS.has(t))) return "narrow";
-  return "restricted";
+function coveredClasses(all, tokens, api) {
+  const covered = new Set(["unarmed"]);
+  if (all) {
+    for (const c of WEAPON_CLASSES) covered.add(c.key);
+    return covered;
+  }
+  const weaponTable = api?.config?.WEAPONS ?? {};
+  for (const t of tokens) {
+    if (t.startsWith("melee")) {
+      for (const c of WEAPON_CLASSES) if (c.melee) covered.add(c.key);
+      continue;
+    }
+    if (t.startsWith("missile")) {
+      for (const c of WEAPON_CLASSES) if (c.missile) covered.add(c.key);
+      continue;
+    }
+    if (WEAPON_CLASSES.some((c) => c.key === t)) {
+      covered.add(t);
+      continue;
+    }
+    // A bare weapon key: light the class that weapon belongs to.
+    const cat = norm(weaponTable[t]?.cat);
+    if (cat && WEAPON_CLASSES.some((c) => c.key === cat)) covered.add(cat);
+  }
+  return covered;
 }
 
 const loc = (key, fallback) => (game.i18n?.has?.(key) ? game.i18n.localize(key) : fallback);
@@ -140,16 +172,20 @@ export function profileStrips(actor) {
     /* no focus data — no gold, which is the honest default */
   }
 
-  // The class's weapon SELECTION: light the ladder up to its breadth. A focused
-  // group (Weapon Focus, RR p.121) golds the top lit rung.
-  const breadth = breadthOf(allWeapons, profTokens);
-  const breadthRank = WEAPON_BREADTH.findIndex((b) => b.key === breadth);
-  const weapons = WEAPON_BREADTH.map((b, i) => ({
-    key: b.key,
-    icon: b.icon,
-    label: loc(b.label, b.fallback),
-    on: breadthRank >= 0 && i <= breadthRank,
-    gold: focusCats.size > 0 && i === breadthRank,
+  // Every weapon class shows; the class-build selection lights the ones it covers.
+  const covered = coveredClasses(allWeapons, profTokens, api);
+  let unarmedFocus = false;
+  try {
+    unarmedFocus = !!api.hasEffectFlag?.(actor, api.EFFECT_DOMAINS?.UNARMED ?? "unarmedFighting");
+  } catch {
+    /* no unarmed-fighting data */
+  }
+  const weapons = WEAPON_CLASSES.map((c) => ({
+    key: c.key,
+    chip: c.chip,
+    label: loc(c.label, c.fallback),
+    on: covered.has(c.key),
+    gold: c.key === "unarmed" ? unarmedFocus : focusCats.has(c.key),
   }));
 
   const maxRank = ARMOUR.findIndex((a) => a.key === norm(armourMax));

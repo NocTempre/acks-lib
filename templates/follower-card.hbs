@@ -199,7 +199,7 @@
     </span>
     <span class="fc-build-group" data-tooltip="{{localize 'ACKS-LIB.followerCard.weaponProf'}}">
       <span class="fc-build-label">{{localize "ACKS-LIB.followerCard.weaponShort"}}</span>
-      {{#each strips.weapons}}<span class="fc-pill{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}"><i class="{{this.icon}}"></i></span>{{/each}}
+      {{#each strips.weapons}}<span class="fc-pill chip{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}">{{this.chip}}</span>{{/each}}
     </span>
     <span class="fc-build-group" data-tooltip="{{localize 'ACKS-LIB.followerCard.armourProf'}}">
       <span class="fc-build-label">{{localize "ACKS-LIB.followerCard.armourShort"}}</span>
