@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.29.4
+
+- **Follower Card sizes to its content.** The sheet had a fixed height taller than a
+  short card, leaving an empty dark bar below it. It now grows to fit the card and
+  scrolls only when it outgrows the viewport (capped at 88vh). Live-verified: the
+  window content height matches the card (no filler bar).
+
 ## 0.29.3
 
 - **Follower Card becomes a quick-roll surface with card-only overrides.**

@@ -24,6 +24,8 @@
 
 .acks-lib-follower-card-sheet .window-content {
   padding: 6px;
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
 /* --- Name banner --- */
