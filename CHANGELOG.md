@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.29.2
+
+- **Follower Card gains key actions: equip, roll, and edit AC.** On the editable
+  card (a hireling's own sheet), each weapon/armour in the Equipment list gets an
+  equip/unequip toggle; the Powers/Prof entries and the Melee/Missile (or monster
+  attack) lines are now rollable (a proficiency rolls its formula or posts its
+  card; an attack opens the system's attack roll); and AC is an editable field
+  with a reset button — a character's edit adjusts `aac.mod` so the effective AC
+  lands on the typed value and Reset zeroes it, while a monster's edit writes its
+  stored `aac.value` directly. The read-only hirelings-tab grid cards are
+  unchanged (still a view). Live-verified on acks 14.0.1.
+
 ## 0.29.1
 
 - **Fixed dark-on-dark illegibility on `.acks-ui` sheets.** With the sheet-theme

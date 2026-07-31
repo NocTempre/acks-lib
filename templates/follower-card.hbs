@@ -65,7 +65,14 @@
       <div class="fc-acx">
         <div class="fc-box fc-ac">
           <label>{{localize "ACKS-LIB.followerCard.ac"}}</label>
-          <span>{{ac}}</span>
+          {{#if editable}}
+            <span class="fc-ac-edit">
+              <input type="number" data-fc-ac value="{{ac}}" data-dtype="Number" />
+              {{#unless isMonster}}<a data-action="fcResetAc" class="fc-ac-reset" data-tooltip="{{localize 'ACKS-LIB.followerCard.acReset'}}"><i class="fas fa-rotate-left"></i></a>{{/unless}}
+            </span>
+          {{else}}
+            <span>{{ac}}</span>
+          {{/if}}
         </div>
         <div class="fc-box fc-hp">
           <label>{{localize "ACKS-LIB.followerCard.hp"}}</label>
@@ -126,24 +133,24 @@
     <div class="fc-mid">
       <div class="fc-panel fc-powers">
         <div class="fc-panel-title">{{localize "ACKS-LIB.followerCard.powers"}}</div>
-        {{#if powers.length}}<ul>{{#each powers}}<li>{{this}}</li>{{/each}}</ul>{{/if}}
+        {{#if powers.length}}<ul>{{#each powers}}<li>{{#if @root.editable}}<a data-action="fcRollProficiency" data-item-id="{{this.id}}" class="fc-roll-link">{{this.name}}</a>{{else}}{{this.name}}{{/if}}</li>{{/each}}</ul>{{/if}}
       </div>
       <div class="fc-attacks">
         <div class="fc-attacks-head"><span></span><span>{{localize "ACKS-LIB.followerCard.at"}}</span><span>{{localize "ACKS-LIB.followerCard.dmg"}}</span></div>
         {{#if isMonster}}
           <div class="fc-attack-row">
-            <label>{{localize "ACKS-LIB.followerCard.attack"}} {{attackThrow}}+</label>
+            {{#if editable}}<a data-action="fcRollAttack" data-attack="attack" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS-LIB.followerCard.attack"}} {{attackThrow}}+</a>{{else}}<label>{{localize "ACKS-LIB.followerCard.attack"}} {{attackThrow}}+</label>{{/if}}
             <span>{{attacksCount}}</span>
             <span>{{attackDamage}}</span>
           </div>
         {{else}}
           <div class="fc-attack-row">
-            <label>{{localize "ACKS.Melee"}} {{melee.value}}</label>
+            {{#if editable}}<a data-action="fcRollAttack" data-attack="melee" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS.Melee"}} {{melee.value}}</a>{{else}}<label>{{localize "ACKS.Melee"}} {{melee.value}}</label>{{/if}}
             <span>{{melee.at}}</span>
             <span>{{melee.dmg}}</span>
           </div>
           <div class="fc-attack-row">
-            <label>{{localize "ACKS.Missile"}} {{missile.value}}</label>
+            {{#if editable}}<a data-action="fcRollAttack" data-attack="missile" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS.Missile"}} {{missile.value}}</a>{{else}}<label>{{localize "ACKS.Missile"}} {{missile.value}}</label>{{/if}}
             <span>{{missile.at}}</span>
             <span>{{missile.dmg}}</span>
           </div>
@@ -159,7 +166,7 @@
       </div>
       <div class="fc-panel fc-equipment">
         <div class="fc-panel-title">{{localize "ACKS-LIB.followerCard.equipment"}}</div>
-        {{#if equipment.length}}<ul>{{#each equipment}}<li>{{this}}</li>{{/each}}</ul>{{/if}}
+        {{#if equipment.length}}<ul>{{#each equipment}}<li>{{#if @root.editable}}{{#if this.equippable}}<a data-action="fcToggleEquip" data-item-id="{{this.id}}" class="fc-equip{{#if this.equipped}} on{{/if}}" data-tooltip="{{localize 'ACKS-LIB.followerCard.equipToggle'}}"><i class="fas fa-shield-halved"></i></a> {{/if}}{{else}}{{#if this.equipped}}<i class="fas fa-shield-halved fc-equipped-mark"></i> {{/if}}{{/if}}{{this.name}}</li>{{/each}}</ul>{{/if}}
       </div>
     </div>
 

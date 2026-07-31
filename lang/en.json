@@ -97,5 +97,7 @@
   "ACKS-LIB.followerCard.attack": "Attack",
   "ACKS-LIB.followerCard.open": "Open full sheet",
   "ACKS-LIB.followerCard.expand": "Expand / details",
-  "ACKS-LIB.followerCard.noFullSheet": "No full sheet is registered for this actor type."
+  "ACKS-LIB.followerCard.noFullSheet": "No full sheet is registered for this actor type.",
+  "ACKS-LIB.followerCard.equipToggle": "Equip / unequip",
+  "ACKS-LIB.followerCard.acReset": "Reset AC to its computed value"
 }

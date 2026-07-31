@@ -276,3 +276,49 @@
 .acks-lib-follower-card.readonly {
   font-size: 11px;
 }
+
+/* --- Interactive affordances (editable sheet only) --- */
+.acks-lib-follower-card .fc-equip {
+  color: rgb(from var(--acks-ink, #231f20) r g b / 0.35);
+  text-decoration: none;
+  cursor: pointer;
+}
+.acks-lib-follower-card .fc-equip.on,
+.acks-lib-follower-card .fc-equipped-mark {
+  color: var(--acks-burgundy, #620730);
+}
+.acks-lib-follower-card .fc-roll-link {
+  color: var(--acks-ink, #231f20);
+  text-decoration: none;
+  cursor: pointer;
+}
+.acks-lib-follower-card .fc-roll-link:hover,
+.acks-lib-follower-card .fc-attack-row a.fc-roll:hover {
+  color: var(--acks-burgundy, #620730);
+  text-decoration: underline;
+}
+.acks-lib-follower-card .fc-attack-row a.fc-roll {
+  cursor: pointer;
+  color: var(--acks-ink, #231f20);
+  text-decoration: none;
+}
+.acks-lib-follower-card .fc-ac-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: 0;
+}
+.acks-lib-follower-card .fc-ac-edit input {
+  width: 2.6em;
+  text-align: center;
+}
+.acks-lib-follower-card .fc-ac-reset {
+  color: var(--acks-burgundy, #620730);
+  cursor: pointer;
+  font-size: 0.85em;
+  text-decoration: none;
+}

@@ -19,6 +19,7 @@
  */
 import { MODULE_ID } from "./constants.mjs";
 import { monsterHd } from "./actor-read.mjs";
+import { isEquippable, isEquipped } from "./item-model.mjs";
 
 export const FOLLOWER_CARD_TEMPLATE = `modules/${MODULE_ID}/templates/follower-card.hbs`;
 
@@ -72,12 +73,19 @@ export function followerCardContext(actor, { editable = false } = {}) {
   const items = actor?.items?.contents ?? [];
 
   const weapons = items.filter((i) => i.type === "weapon");
-  const powers = items.filter((i) => i.type === "ability").map((i) => i.name);
+  // Powers/prof and equipment carry ids so the editable sheet can roll them and
+  // toggle equipped state; the read-only grid just reads `.name`.
+  const powers = items.filter((i) => i.type === "ability").map((i) => ({ id: i.id, name: i.name }));
   const equipment = items
     .filter((i) => i.type === "weapon" || i.type === "armor" || i.type === "item")
     .map((i) => {
-      const q = num(i.system?.quantity, 1);
-      return q > 1 ? `${i.name} ×${q}` : i.name;
+      const q = num(i.system?.quantity?.value, 1);
+      return {
+        id: i.id,
+        name: q > 1 ? `${i.name} ×${q}` : i.name,
+        equippable: isEquippable(i),
+        equipped: isEquipped(i),
+      };
     });
 
   const ctx = {
@@ -89,6 +97,7 @@ export function followerCardContext(actor, { editable = false } = {}) {
     alignment: sys.details?.alignment ?? "",
     klass: isMonster ? "" : sys.details?.class ?? "",
     ac: num(sys.aac?.value),
+    acMod: num(sys.aac?.mod),
     hp: { value: num(sys.hp?.value), max: num(sys.hp?.max) },
     morale: num(sys.details?.morale),
     loyalty: num(sys.retainer?.loyalty),
