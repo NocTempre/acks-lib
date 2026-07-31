@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.29.0
+
+- **The acks-design system is now vendored and available family-wide.** Lifted a
+  self-contained copy of the ACKS II design system (tokens, base typography,
+  textures, ornaments, tables, callouts, controls, and the Foundry chrome layer,
+  plus the OFL text fonts) from the local reference folder into
+  `vendor/acks-design/`, loaded as an opt-in stylesheet. It is scoped entirely
+  under `.acks-ui` and inert until a sheet adds that class to its application root,
+  so it restyles nothing for players who never open an opted-in sheet — but any
+  family module can now give a sheet the printed-book look (porphyry window header,
+  Cinzel caps, ruled tables, tags, callouts) just by opting in and using the
+  `.acks-*` component classes, with no per-module copy. The non-OFL "Acks Symbols"
+  glyph font and the character-sheet geometry (glyphs/shapes) are deliberately not
+  vendored. Nothing depends on the reference folder at runtime.
+
 ## 0.28.0
 
 - **Follower Card — the printed henchman/follower card as a compact actor sheet.**
