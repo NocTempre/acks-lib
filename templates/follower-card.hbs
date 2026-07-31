@@ -136,9 +136,22 @@
     <div class="fc-mid">
       <div class="fc-panel fc-powers">
         <div class="fc-panel-title">{{localize "ACKS-LIB.followerCard.powers"}}</div>
+        {{#if strips.any}}
+        <div class="fc-strips">
+          <div class="fc-strip" data-tooltip="{{localize 'ACKS-LIB.followerCard.styles'}}">
+            {{#each strips.styles}}<span class="fc-pill{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}"><i class="{{this.icon}}"></i></span>{{/each}}
+          </div>
+          <div class="fc-strip" data-tooltip="{{localize 'ACKS-LIB.followerCard.weaponProf'}}">
+            {{#each strips.weapons}}<span class="fc-pill chip{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}">{{this.chip}}</span>{{/each}}
+          </div>
+          <div class="fc-strip" data-tooltip="{{localize 'ACKS-LIB.followerCard.armourProf'}}">
+            {{#each strips.armour}}<span class="fc-pill{{#if this.on}} on{{/if}}" data-tooltip="{{this.label}}"><i class="{{this.icon}}"></i></span>{{/each}}
+          </div>
+        </div>
+        {{/if}}
         {{#if powers.length}}<ul class="fc-prof-list">{{#each powers}}<li class="fc-prof-row">
           <span class="fc-prof-name">{{this.name}}</span>
-          {{#if @root.editable}}<a data-action="fcRollProficiency" data-item-id="{{this.id}}" class="fc-prof-roll" data-tooltip="{{localize 'ACKS-LIB.followerCard.roll'}} {{this.name}}"><i class="fas fa-dice-d20"></i></a>{{/if}}
+          {{#if @root.editable}}{{#if this.rollable}}<a data-action="fcRollProficiency" data-item-id="{{this.id}}" class="fc-prof-roll" data-tooltip="{{localize 'ACKS-LIB.followerCard.roll'}} {{this.name}}"><i class="fas fa-dice-d20"></i></a>{{/if}}{{/if}}
         </li>{{/each}}</ul>{{/if}}
       </div>
 
@@ -163,7 +176,7 @@
             {{#if @root.editable}}
               <a data-action="fcRollAttack" data-attack="{{this.type}}" data-item-id="{{this.itemId}}" class="fc-roll"
                  data-tooltip="{{this.label}}{{#if this.damageTypeLabel}} — {{this.damageTypeLabel}}{{/if}}">
-                <i class="{{this.icon}}"></i> {{this.label}} {{this.target}}+ <span class="fc-attack-bonus">{{this.bonus}}</span>
+                <i class="{{this.icon}}"></i> {{this.label}} {{this.target}}+ <span class="fc-attack-bonus">{{this.bonus}}</span>{{#if this.size.count}} <span class="fc-size" data-tooltip="{{this.size.label}}">{{#each this.size.pips}}<i class="fas fa-circle"></i>{{/each}}</span>{{/if}}
               </a>
             {{else}}
               <label data-tooltip="{{this.damageTypeLabel}}"><i class="{{this.icon}}"></i> {{this.label}} {{this.target}}+ <span class="fc-attack-bonus">{{this.bonus}}</span></label>

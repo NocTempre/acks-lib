@@ -390,6 +390,61 @@
   text-align: center;
 }
 
+/* --- Profile strips: styles / weapon categories / armour ---------------- */
+.acks-lib-follower-card .fc-strips {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px 6px;
+}
+.acks-lib-follower-card .fc-strip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.acks-lib-follower-card .fc-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  height: 1.5em;
+  padding: 0 3px;
+  border: 1px solid rgb(from var(--acks-ink, #231f20) r g b / 0.25);
+  border-radius: 2px;
+  font-size: 0.78em;
+  line-height: 1;
+  /* Untrained: present but clearly inert — the slot still shows. */
+  color: rgb(from var(--acks-ink, #231f20) r g b / 0.3);
+  background: transparent;
+}
+.acks-lib-follower-card .fc-pill.chip {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.acks-lib-follower-card .fc-pill.on {
+  color: var(--acks-on-burgundy, #fff);
+  background: var(--acks-burgundy, #620730);
+  border-color: var(--acks-burgundy-ink, #4a0524);
+}
+/* Specialization / focus reads gold against the burgundy. */
+.acks-lib-follower-card .fc-pill.gold {
+  color: #2b1c05;
+  background: #c9a227;
+  border-color: #8a6d13;
+}
+
+/* Weapon size, as pips (tiny 1 → large 4). */
+.acks-lib-follower-card .fc-size {
+  display: inline-flex;
+  gap: 1px;
+  vertical-align: middle;
+}
+.acks-lib-follower-card .fc-size i {
+  font-size: 0.32em;
+  opacity: 0.75;
+}
+
 /* Bonus half of an attack line: visually distinct from the throw TARGET. */
 .acks-lib-follower-card .fc-attack-bonus {
   color: var(--acks-burgundy, #620730);

@@ -63,6 +63,16 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
       inp.addEventListener("change", (ev) => this.#onAdvInput(ev));
     }
 
+    // Re-fit the window to the card. `position.height: "auto"` only applies to the
+    // FIRST render — a resize (or a restored position) pins a pixel height, which
+    // then shows as empty window-content under a short card. Ask for auto again
+    // every render so the frame always tracks the content.
+    try {
+      this.setPosition({ height: "auto" });
+    } catch {
+      /* position not settable yet — harmless */
+    }
+
     const header = this.element?.querySelector(".window-header");
     if (!header || header.querySelector(".acks-lib-fc-expand")) return;
     const btn = document.createElement("button");

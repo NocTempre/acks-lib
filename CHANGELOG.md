@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.32.0
+
+- **Fighting styles, weapon proficiency and armour become always-visible icon
+  strips** instead of list rows. Every slot shows; a trained one lights up; a
+  **specialized style or focused weapon group reads gold**. The state comes from
+  acks-equipment's own profile API (effects + flags), never from item names, and
+  the strips are omitted entirely when that module is absent rather than guessed.
+  This alone took a real henchman's proficiency list from 11 rows to 5 — the five
+  "Fighting Style: …" entries and "Armour Proficiency: Heavy" are now a strip.
+- **A d20 button means "this rolls."** Proficiencies without a roll formula
+  (Diplomacy, most social/knowledge entries) no longer show a button at all;
+  entries covering several throws keep several (Adventuring's own section).
+- **Weapons show their size as pips** (tiny ● → large ●●●●) on each attack row,
+  read from acks-equipment's classifier.
+- **Fixed: the empty bar under a short card.** `position.height: "auto"` only
+  applies to the first render, so any resize (or a restored position) pinned a
+  pixel height that showed as dead space. The card now re-fits its window on every
+  render — verified on a real henchman: window 535px vs card 485px + padding,
+  where it had been ~770px.
+
 ## 0.31.0
 
 - **Weapons are damage-typed without an annotation step** (`damage-type.mjs`).

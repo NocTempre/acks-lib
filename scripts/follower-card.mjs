@@ -21,6 +21,7 @@ import { MODULE_ID } from "./constants.mjs";
 import { monsterHd } from "./actor-read.mjs";
 import { isEquippable, isEquipped } from "./item-model.mjs";
 import { attackOptionsFor, damageTypeLabel, DAMAGE_TYPE_ICONS, UNTYPED_ICON } from "./damage-type.mjs";
+import { profileStrips, isProfileAbility, sizePips } from "./proficiency-strip.mjs";
 
 export const FOLLOWER_CARD_TEMPLATE = `modules/${MODULE_ID}/templates/follower-card.hbs`;
 
@@ -88,7 +89,12 @@ export function followerCardContext(actor, { editable = false } = {}) {
   const weapons = items.filter((i) => i.type === "weapon");
   // Powers/prof and equipment carry ids so the editable sheet can roll them and
   // toggle equipped state; the read-only grid just reads `.name`.
-  const powers = items.filter((i) => i.type === "ability").map((i) => ({ id: i.id, name: i.name }));
+  // Proficiencies that DO something. The ones that merely record a fighting
+  // style / armour / weapon-proficiency state live in the strips instead, and a
+  // non-rolling entry gets no button at all — a d20 means "this rolls".
+  const powers = items
+    .filter((i) => i.type === "ability" && !isProfileAbility(i))
+    .map((i) => ({ id: i.id, name: i.name, rollable: !!i.system?.roll }));
   const equipment = items
     .filter((i) => i.type === "weapon" || i.type === "armor" || i.type === "item")
     .map((i) => {
@@ -189,13 +195,17 @@ export function followerCardContext(actor, { editable = false } = {}) {
       },
     ];
   } else {
-    ctx.attacks = attackOptionsFor(actor).map((o) => ({
-      ...o,
-      damageTypeLabel: damageTypeLabel(o.damageType),
-      target: throwTarget,
-      bonus: signed(bonusFor(o.type)),
-      dmg: o.damage ? withMod(o.damage, dmgModFor(o.type === "missile" ? "missile" : "melee")) : "",
-    }));
+    ctx.attacks = attackOptionsFor(actor).map((o) => {
+      const item = o.itemId ? actor.items.get(o.itemId) : null;
+      return {
+        ...o,
+        damageTypeLabel: damageTypeLabel(o.damageType),
+        size: item ? sizePips(item) : { count: 0, label: "", pips: [] },
+        target: throwTarget,
+        bonus: signed(bonusFor(o.type)),
+        dmg: o.damage ? withMod(o.damage, dmgModFor(o.type === "missile" ? "missile" : "melee")) : "",
+      };
+    });
   }
 
   // Adventuring throws (character only) get their own rollable row — but only for
@@ -212,6 +222,7 @@ export function followerCardContext(actor, { editable = false } = {}) {
           overridden: advOv[key] != null,
         }));
 
+  ctx.strips = profileStrips(actor);
   ctx.hasOverrides = overrides.ac != null || Object.keys(advOv).length > 0;
   return ctx;
 }
