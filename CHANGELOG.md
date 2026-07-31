@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.29.1
+
+- **Fixed dark-on-dark illegibility on `.acks-ui` sheets.** With the sheet-theme
+  setting on and the client in dark mode, sheet-theme's body-class token overrides
+  (which it deliberately does not flip dark — it keeps Foundry's own dark surfaces
+  for the SYSTEM sheets it themes) out-specified acks-design's dark palette inside a
+  `.acks-ui` component root, leaving dark `--acks-ink` text on acks-design's dark
+  paper ground. The acks-design layer now re-asserts its dark palette on `.acks-ui`
+  itself at a specificity that outranks the body class, isolating the component
+  layer from the whole-client theme. Live-verified: location-sheet labels/inputs go
+  from `#231f20` on `#1b1416` (illegible) to `#ede6df` on `#1b1416` (~13:1).
+
 ## 0.29.0
 
 - **The acks-design system is now vendored and available family-wide.** Lifted a
