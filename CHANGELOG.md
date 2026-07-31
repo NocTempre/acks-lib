@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.29.3
+
+- **Follower Card becomes a quick-roll surface with card-only overrides.**
+  - Proficiencies/skills get a right-aligned roll button (its tooltip names the roll).
+  - A dedicated **Adventuring** section (dungeon-bashing, climb, listening, searching,
+    trap-breaking), shown only for a hireling trained in Adventuring; each throw rolls.
+  - Every roll target (AC, adventuring throws) takes a **sticky card-only override** —
+    stored in a flag the main character sheet ignores, so you can change a target for a
+    quick roll without touching the actor's real data. **Reset** clears the overrides;
+    **Commit** bakes them into the real base fields (AC via `aac.mod`, adventuring
+    directly). An overridden roll uses the override target; otherwise the system's own
+    roll runs.
+  - **+Attack / +Skill** buttons add minimal weapon / ability items for ad-hocs.
+  - Melee/Ranged now show the full attack bonus the roll actually uses (base throw
+    included), not just the ability adjustment.
+  Live-verified on acks 14.0.1. (Attacks-as-a-list-from-equipment, with damage-type
+  icons and the unarmed/improvised fallback, is the next increment.)
+
 ## 0.29.2
 
 - **Follower Card gains key actions: equip, roll, and edit AC.** On the editable

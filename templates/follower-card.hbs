@@ -15,6 +15,12 @@
     {{#if img}}<img class="fc-portrait" src="{{img}}" alt="{{name}}" />{{/if}}
     {{#if editable}}
       <input type="text" name="name" value="{{name}}" placeholder="{{localize 'Name'}}" />
+      <span class="fc-toolbar">
+        <a data-action="fcAddAttack" data-tooltip="{{localize 'ACKS-LIB.followerCard.addAttack'}}"><i class="fas fa-plus"></i><i class="fas fa-gavel"></i></a>
+        <a data-action="fcAddSkill" data-tooltip="{{localize 'ACKS-LIB.followerCard.addSkill'}}"><i class="fas fa-plus"></i><i class="fas fa-book"></i></a>
+        <a data-action="fcCommit" class="fc-commit{{#unless hasOverrides}} off{{/unless}}" data-tooltip="{{localize 'ACKS-LIB.followerCard.commit'}}"><i class="fas fa-check-double"></i></a>
+        <a data-action="fcResetSheet" class="fc-reset{{#unless hasOverrides}} off{{/unless}}" data-tooltip="{{localize 'ACKS-LIB.followerCard.resetSheet'}}"><i class="fas fa-rotate-left"></i></a>
+      </span>
     {{else}}
       <a data-action="hirelingShow" class="fc-open">{{name}}</a>
     {{/if}}
@@ -63,13 +69,10 @@
     {{!-- LEFT RAIL: AC, HP, abilities, SPD/ENC/MORALE/LOYALTY --}}
     <div class="fc-rail">
       <div class="fc-acx">
-        <div class="fc-box fc-ac">
+        <div class="fc-box fc-ac{{#if acOverridden}} overridden{{/if}}">
           <label>{{localize "ACKS-LIB.followerCard.ac"}}</label>
           {{#if editable}}
-            <span class="fc-ac-edit">
-              <input type="number" data-fc-ac value="{{ac}}" data-dtype="Number" />
-              {{#unless isMonster}}<a data-action="fcResetAc" class="fc-ac-reset" data-tooltip="{{localize 'ACKS-LIB.followerCard.acReset'}}"><i class="fas fa-rotate-left"></i></a>{{/unless}}
-            </span>
+            <input type="number" data-fc-ac value="{{ac}}" data-dtype="Number" />
           {{else}}
             <span>{{ac}}</span>
           {{/if}}
@@ -133,8 +136,26 @@
     <div class="fc-mid">
       <div class="fc-panel fc-powers">
         <div class="fc-panel-title">{{localize "ACKS-LIB.followerCard.powers"}}</div>
-        {{#if powers.length}}<ul>{{#each powers}}<li>{{#if @root.editable}}<a data-action="fcRollProficiency" data-item-id="{{this.id}}" class="fc-roll-link">{{this.name}}</a>{{else}}{{this.name}}{{/if}}</li>{{/each}}</ul>{{/if}}
+        {{#if powers.length}}<ul class="fc-prof-list">{{#each powers}}<li class="fc-prof-row">
+          <span class="fc-prof-name">{{this.name}}</span>
+          {{#if @root.editable}}<a data-action="fcRollProficiency" data-item-id="{{this.id}}" class="fc-prof-roll" data-tooltip="{{localize 'ACKS-LIB.followerCard.roll'}} {{this.name}}"><i class="fas fa-dice-d20"></i></a>{{/if}}
+        </li>{{/each}}</ul>{{/if}}
       </div>
+
+      {{#if hasAdventuring}}
+      <div class="fc-panel fc-adventuring">
+        <div class="fc-panel-title">{{localize "ACKS-LIB.followerCard.adventuring"}}</div>
+        <ul class="fc-adv-list">
+          {{#each adventuring}}
+          <li class="fc-adv-row{{#if this.overridden}} overridden{{/if}}">
+            {{#if @root.editable}}<a data-action="fcRollAdventuring" data-skill="{{this.key}}" class="fc-adv-roll" data-tooltip="{{localize this.label}}"><i class="{{this.icon}}"></i></a>{{else}}<i class="{{this.icon}}" data-tooltip="{{localize this.label}}"></i>{{/if}}
+            <span class="fc-adv-name">{{localize this.label}}</span>
+            {{#if @root.editable}}<input type="number" data-fc-adv="{{this.key}}" value="{{this.value}}" data-dtype="Number" />{{else}}<span class="fc-adv-val">{{this.value}}</span>{{/if}}
+          </li>
+          {{/each}}
+        </ul>
+      </div>
+      {{/if}}
       <div class="fc-attacks">
         <div class="fc-attacks-head"><span></span><span>{{localize "ACKS-LIB.followerCard.at"}}</span><span>{{localize "ACKS-LIB.followerCard.dmg"}}</span></div>
         {{#if isMonster}}

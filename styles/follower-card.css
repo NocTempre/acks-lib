@@ -322,3 +322,77 @@
   font-size: 0.85em;
   text-decoration: none;
 }
+
+/* --- Name-bar toolbar: +Attack / +Skill / Commit / Reset --- */
+.acks-lib-follower-card .fc-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+.acks-lib-follower-card .fc-toolbar a {
+  color: var(--acks-on-burgundy, #ffffff);
+  text-decoration: none;
+  cursor: pointer;
+  opacity: 0.9;
+}
+.acks-lib-follower-card .fc-toolbar a.off {
+  opacity: 0.35;
+}
+.acks-lib-follower-card .fc-toolbar a i + i {
+  font-size: 0.66em;
+  vertical-align: super;
+  margin-left: -2px;
+}
+
+/* --- Proficiency rows: name left, roll button right --- */
+.acks-lib-follower-card .fc-prof-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.acks-lib-follower-card .fc-prof-roll,
+.acks-lib-follower-card .fc-adv-roll {
+  flex: 0 0 auto;
+  color: var(--acks-burgundy, #620730);
+  text-decoration: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* --- Adventuring rows: icon, name, editable throw --- */
+.acks-lib-follower-card .fc-adv-list {
+  list-style: none;
+  margin: 0;
+  padding: 3px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.acks-lib-follower-card .fc-adv-row {
+  display: grid;
+  grid-template-columns: 1.5em 1fr 2.8em;
+  align-items: center;
+  gap: 4px;
+}
+.acks-lib-follower-card .fc-adv-row input {
+  background: var(--acks-field, #ffffff);
+  border: 1px solid var(--acks-ink, #231f20);
+  border-radius: 2px;
+  padding: 1px 3px;
+  text-align: center;
+  color: var(--acks-ink, #231f20);
+}
+.acks-lib-follower-card .fc-adv-val {
+  text-align: center;
+}
+
+/* An overridden target reads in the spot colour, so you can see the quick change. */
+.acks-lib-follower-card .fc-ac.overridden input,
+.acks-lib-follower-card .fc-ac.overridden span,
+.acks-lib-follower-card .fc-adv-row.overridden input,
+.acks-lib-follower-card .fc-adv-row.overridden .fc-adv-val {
+  color: var(--acks-burgundy, #620730);
+  font-weight: 600;
+}

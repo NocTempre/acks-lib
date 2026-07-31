@@ -1,34 +1,41 @@
-/* global foundry, game, ui, CONFIG, document */
+/* global foundry, game, ui, CONFIG, document, Roll, ChatMessage */
 /**
  * FollowerCardSheet — the compact "Follower Card" as an actor's own sheet.
  *
  * Registered (at `ready`, in module.mjs) for `character` and `monster` as an
- * ALTERNATIVE sheet — never makeDefault, so PCs and wild monsters keep their full
- * system sheet. acks-lib makes it the per-instance default for retainers
- * (flags.core.sheetClass), so a hireling opens as the card. The injected
- * "Expand / details" header button resolves and opens the full system sheet for
- * everything the card does not cover (items, spells, effects, deep monster stats).
+ * ALTERNATIVE sheet. acks-lib makes it the per-instance default for retainers, so a
+ * hireling opens as the card. The "Expand / details" header button opens the full
+ * system sheet.
  *
- * The card is the SAME template the hirelings-tab grid uses, rendered here in its
- * `editable` mode: the essentials (name, scores, hp, class/level/xp, alignment,
- * morale, loyalty, notes) submit through this sheet's own form; derived values
- * (mods, AC, encumbrance, attack numbers) are display-only.
+ * The card is a QUICK-ROLL surface: attacks and proficiencies roll through the
+ * system, and each roll target (AC, adventuring throws) can be given a **sticky
+ * card-only override** — stored in `flags.acks-lib.fcOverrides`, which the main
+ * character sheet ignores, so you can change a target for a quick roll without
+ * touching the actor's real data. **Reset** clears the overrides; **Commit** bakes
+ * them into the real base fields. `+Attack` / `+Skill` add minimal items for ad-hocs.
  */
+import { MODULE_ID } from "../constants.mjs";
 import { followerCardContext, FOLLOWER_CARD_TEMPLATE } from "../follower-card.mjs";
+
+const num = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 
 export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplicationMixin(
   foundry.applications.sheets.ActorSheetV2,
 ) {
   static DEFAULT_OPTIONS = {
     classes: ["acks", "acks-lib-follower-card-sheet"],
-    position: { width: 600, height: 640 },
+    position: { width: 600, height: 660 },
     window: { resizable: true },
     form: { submitOnChange: true, closeOnSubmit: false },
     actions: {
       fcToggleEquip: FollowerCardSheet.#onToggleEquip,
       fcRollProficiency: FollowerCardSheet.#onRollProficiency,
       fcRollAttack: FollowerCardSheet.#onRollAttack,
-      fcResetAc: FollowerCardSheet.#onResetAc,
+      fcRollAdventuring: FollowerCardSheet.#onRollAdventuring,
+      fcResetSheet: FollowerCardSheet.#onResetSheet,
+      fcCommit: FollowerCardSheet.#onCommit,
+      fcAddAttack: FollowerCardSheet.#onAddAttack,
+      fcAddSkill: FollowerCardSheet.#onAddSkill,
     },
   };
 
@@ -42,15 +49,16 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
     return { ...context, ...followerCardContext(this.actor, { editable: this.isEditable }) };
   }
 
-  /** @override — inject a visible "Expand / details" button into the header. */
+  /** @override — wire the override inputs and inject the Expand button. */
   async _onRender(context, options) {
     await super._onRender(context, options);
 
-    // The AC bucket writes the EFFECTIVE AC: a character adjusts aac.mod (so
-    // core's computeAC lands on the typed value and Reset zeroes it); a monster's
-    // AC is stored, so it writes aac.value directly. It carries no name=, so it is
-    // not a form field and must not ride submitOnChange.
+    // Roll-target inputs write CARD-ONLY overrides (a flag the main sheet ignores),
+    // not the base fields. They carry no name=, so they don't ride the form submit.
     this.element?.querySelector("input[data-fc-ac]")?.addEventListener("change", (ev) => this.#onAcInput(ev));
+    for (const inp of this.element?.querySelectorAll("input[data-fc-adv]") ?? []) {
+      inp.addEventListener("change", (ev) => this.#onAdvInput(ev));
+    }
 
     const header = this.element?.querySelector(".window-header");
     if (!header || header.querySelector(".acks-lib-fc-expand")) return;
@@ -77,7 +85,55 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
   }
 
   /* -------------------------------------------- */
-  /*  Card actions                                */
+  /*  Card-only overrides                         */
+  /* -------------------------------------------- */
+
+  #overrides() {
+    return foundry.utils.deepClone(this.actor.getFlag(MODULE_ID, "fcOverrides") ?? {});
+  }
+
+  async #setOverride(patch) {
+    await this.actor.setFlag(MODULE_ID, "fcOverrides", foundry.utils.mergeObject(this.#overrides(), patch));
+  }
+
+  async #onAcInput(ev) {
+    ev.stopPropagation();
+    const v = Math.round(Number(ev.target.value));
+    if (Number.isFinite(v)) await this.#setOverride({ ac: v });
+  }
+
+  async #onAdvInput(ev) {
+    ev.stopPropagation();
+    const key = ev.target.dataset.fcAdv;
+    const v = Math.round(Number(ev.target.value));
+    if (key && Number.isFinite(v)) await this.#setOverride({ adventuring: { [key]: v } });
+  }
+
+  /** Reset: drop all card-only overrides, back to the sheet's own values. */
+  static async #onResetSheet() {
+    await this.actor.unsetFlag(MODULE_ID, "fcOverrides");
+  }
+
+  /** Commit: bake the card-only overrides into the real base fields, then clear. */
+  static async #onCommit() {
+    const ov = this.actor.getFlag(MODULE_ID, "fcOverrides") ?? {};
+    const upd = {};
+    if (ov.ac != null) {
+      if (this.actor.type === "monster") {
+        upd["system.aac.value"] = num(ov.ac); // monster AC is stored directly
+      } else {
+        const sys = this.actor.system;
+        const base = num(sys.aac?.value) - num(sys.aac?.mod);
+        upd["system.aac.mod"] = num(ov.ac) - base; // land computeAC on the typed value
+      }
+    }
+    for (const [k, v] of Object.entries(ov.adventuring ?? {})) upd[`system.adventuring.${k}`] = num(v);
+    if (Object.keys(upd).length) await this.actor.update(upd);
+    await this.actor.unsetFlag(MODULE_ID, "fcOverrides");
+  }
+
+  /* -------------------------------------------- */
+  /*  Rolls                                       */
   /* -------------------------------------------- */
 
   /** Toggle a weapon/armour item's worn/wielded state. */
@@ -108,23 +164,36 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
     this.actor.targetAttack?.({ actor: this.actor, roll: {} }, type, { type, skipDialog: skip });
   }
 
-  /** Reset a character's AC to its computed base (clears the manual adjustment). */
-  static async #onResetAc() {
-    if (this.actor.type === "monster") return;
-    await this.actor.update({ "system.aac.mod": 0 });
+  /** Roll an adventuring throw, honouring a card-only override target if set. */
+  static #onRollAdventuring(event, target) {
+    const key = target.dataset.skill;
+    if (!key) return;
+    const ov = (this.actor.getFlag(MODULE_ID, "fcOverrides") ?? {}).adventuring ?? {};
+    if (ov[key] == null) {
+      this.actor.rollAdventuring?.(key, { event });
+      return;
+    }
+    // Overridden: roll against the card-only target without writing to the actor.
+    const label = game.i18n.localize(`ACKS.adventuring.${key}`);
+    new Roll("1d20").toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      flavor: `${label} — ${game.i18n.format("ACKS-LIB.followerCard.targetHint", { n: num(ov[key]) })}`,
+    });
   }
 
-  /** AC bucket change (wired in _onRender — not a form field). */
-  async #onAcInput(ev) {
-    ev.stopPropagation();
-    const v = Math.round(Number(ev.target.value));
-    if (!Number.isFinite(v)) return;
-    if (this.actor.type === "monster") {
-      await this.actor.update({ "system.aac.value": v });
-    } else {
-      const sys = this.actor.system;
-      const base = Number(sys.aac?.value ?? 0) - Number(sys.aac?.mod ?? 0);
-      await this.actor.update({ "system.aac.mod": v - base });
-    }
+  /* -------------------------------------------- */
+  /*  Ad-hoc additions (real, minimal items)      */
+  /* -------------------------------------------- */
+
+  static async #onAddAttack() {
+    await this.actor.createEmbeddedDocuments("Item", [
+      { name: game.i18n.localize("ACKS-LIB.followerCard.newAttack"), type: "weapon", system: { equipped: true, damage: "1d6", melee: true } },
+    ]);
+  }
+
+  static async #onAddSkill() {
+    await this.actor.createEmbeddedDocuments("Item", [
+      { name: game.i18n.localize("ACKS-LIB.followerCard.newSkill"), type: "ability", system: { roll: "1d20" } },
+    ]);
   }
 }

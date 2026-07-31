@@ -99,5 +99,14 @@
   "ACKS-LIB.followerCard.expand": "Expand / details",
   "ACKS-LIB.followerCard.noFullSheet": "No full sheet is registered for this actor type.",
   "ACKS-LIB.followerCard.equipToggle": "Equip / unequip",
-  "ACKS-LIB.followerCard.acReset": "Reset AC to its computed value"
+  "ACKS-LIB.followerCard.acReset": "Reset AC to its computed value",
+  "ACKS-LIB.followerCard.adventuring": "Adventuring",
+  "ACKS-LIB.followerCard.roll": "Roll",
+  "ACKS-LIB.followerCard.resetSheet": "Reset quick overrides",
+  "ACKS-LIB.followerCard.commit": "Commit overrides to the sheet (permanent)",
+  "ACKS-LIB.followerCard.addAttack": "Add a quick attack",
+  "ACKS-LIB.followerCard.addSkill": "Add a quick skill",
+  "ACKS-LIB.followerCard.newAttack": "New Attack",
+  "ACKS-LIB.followerCard.newSkill": "New Skill",
+  "ACKS-LIB.followerCard.targetHint": "target {n}+"
 }
