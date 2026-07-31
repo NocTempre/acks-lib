@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.31.0
+
+- **Weapons are damage-typed without an annotation step** (`damage-type.mjs`).
+  Core items carry no damage type, and acks-equipment only stamped one when its
+  annotate macro was run — so ordinary gear was untyped and nothing could show a
+  damage-type affordance. The type now resolves LIVE through acks-equipment's own
+  classifier (no second copy of the weapon table, no annotate step): an
+  unannotated "Sword" resolves *slashing*, "Shortbow" *piercing*. Resolution order
+  is acks-lib override flag → acks-equipment's stamped flag → its live classifier
+  → null (a weapon the books do not type stays untyped and gets a neutral icon —
+  no guessed types). `setDamageType(item, type)` sets an override for ad-hoc gear.
+  Exposed as `acksLib.damageType` (resolver, icons, labels, attack options).
+- **The Follower Card's attacks are now the options the body actually has**, one
+  row per equipped weapon with its **damage-type icon** as the roll button: a
+  thrown melee weapon lists twice (melee and thrown), and an empty-handed body
+  lists only unarmed and improvised (including an improvised throw). Rows keep the
+  target/bonus split (`Sword 10+ +1`) and roll the actual weapon, so
+  acks-equipment's per-weapon RAW modifiers apply. A monster with no gear keeps
+  its natural attack routine.
+
 ## 0.30.1
 
 - **The core sheet's folded Melee/Ranged display is now fully superseded**

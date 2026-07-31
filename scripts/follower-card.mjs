@@ -1,4 +1,4 @@
-/* global foundry */
+/* global foundry, game */
 /**
  * The ACKS II "Follower Card" — the printed henchman/follower card, rendered as a
  * compact, theme-styled view of an actor.
@@ -20,6 +20,7 @@
 import { MODULE_ID } from "./constants.mjs";
 import { monsterHd } from "./actor-read.mjs";
 import { isEquippable, isEquipped } from "./item-model.mjs";
+import { attackOptionsFor, damageTypeLabel, DAMAGE_TYPE_ICONS, UNTYPED_ICON } from "./damage-type.mjs";
 
 export const FOLLOWER_CARD_TEMPLATE = `modules/${MODULE_ID}/templates/follower-card.hbs`;
 
@@ -62,11 +63,9 @@ function hdLabel(actor) {
   return hd === 0.5 ? "½" : String(hd);
 }
 
-/** Damage of the first equipped weapon of a kind, with the actor's damage mod. */
-function weaponDamage(weapons, kind, mod) {
-  const w = weapons.find((it) => it.system?.equipped && it.system?.[kind]);
-  if (!w) return "";
-  const dice = w.system?.damage ?? "";
+/** A damage die with the actor's damage modifier appended (blank stays blank). */
+function withMod(dice, mod) {
+  if (!dice) return "";
   return mod ? `${dice}${signed(mod)}` : `${dice}`;
 }
 
@@ -156,22 +155,47 @@ export function followerCardContext(actor, { editable = false } = {}) {
   // Encumbrance — character only (computeEncumbrance is character-gated in core)
   ctx.enc = isMonster ? null : { value: stones(sys.encumbrance?.value6), max: stones(sys.encumbrance?.max6) };
 
-  // Attacks. Mirror exactly what core's own sheet displays — no invented formulas.
-  if (isMonster) {
-    const equippedAttacks = weapons.filter((w) => w.system?.equipped && (w.system?.melee || w.system?.missile)).length;
-    ctx.attacksCount = equippedAttacks || 1;
-    ctx.attackDamage =
-      weaponDamage(weapons, "melee", num(sys.damage?.mod?.melee)) ||
-      weaponDamage(weapons, "missile", num(sys.damage?.mod?.missile));
+  // ATTACKS — one row per option the body actually has, each with its damage-type
+  // icon. Target vs bonus stays DISTINCT (the ACKS model the patched roll uses):
+  // the attack throw is the MOVING TARGET (class/level); the ability mod and
+  // attack adjustment are ROLL-ADD bonuses. Never folded into one number.
+  const throwTarget = num(sys.thac0?.throw, 10);
+  const bonusFor = (type) =>
+    // A monster's natural attack takes no ability modifier (it has no scores).
+    isMonster
+      ? 0
+      : type === "missile"
+        ? num(sys.scores?.dex?.mod) + num(sys.thac0?.mod?.missile)
+        : num(sys.scores?.str?.mod) + num(sys.thac0?.mod?.melee);
+  const dmgModFor = (type) => num(sys.damage?.mod?.[type]);
+
+  const equippedWeapons = weapons.filter((w) => w.system?.equipped);
+  if (isMonster && !equippedWeapons.length) {
+    // A monster with no gear fights with its own routine, not "unarmed".
+    ctx.attacks = [
+      {
+        key: "natural",
+        label: game.i18n?.has?.("ACKS-LIB.followerCard.attack")
+          ? game.i18n.localize("ACKS-LIB.followerCard.attack")
+          : "Attack",
+        type: "attack",
+        itemId: null,
+        icon: DAMAGE_TYPE_ICONS.varies ?? UNTYPED_ICON,
+        damageTypeLabel: "",
+        target: throwTarget,
+        bonus: signed(0),
+        at: 1,
+        dmg: "",
+      },
+    ];
   } else {
-    // Target vs bonus, kept DISTINCT (the ACKS model, matching the patched roll):
-    // the attack throw is the MOVING TARGET (class/level); the ability mod and
-    // attack adjustment are ROLL-ADD bonuses. Never folded into one number.
-    const throwTarget = num(sys.thac0?.throw, 10);
-    const meleeBonus = num(sys.scores?.str?.mod) + num(sys.thac0?.mod?.melee);
-    const missileBonus = num(sys.scores?.dex?.mod) + num(sys.thac0?.mod?.missile);
-    ctx.melee = { target: throwTarget, value: signed(meleeBonus), at: 1, dmg: weaponDamage(weapons, "melee", num(sys.damage?.mod?.melee)) };
-    ctx.missile = { target: throwTarget, value: signed(missileBonus), at: 1, dmg: weaponDamage(weapons, "missile", num(sys.damage?.mod?.missile)) };
+    ctx.attacks = attackOptionsFor(actor).map((o) => ({
+      ...o,
+      damageTypeLabel: damageTypeLabel(o.damageType),
+      target: throwTarget,
+      bonus: signed(bonusFor(o.type)),
+      dmg: o.damage ? withMod(o.damage, dmgModFor(o.type === "missile" ? "missile" : "melee")) : "",
+    }));
   }
 
   // Adventuring throws (character only) get their own rollable row — but only for

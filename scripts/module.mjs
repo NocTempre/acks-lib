@@ -46,6 +46,7 @@ import { registerMountCleanup } from "./mount.mjs";
 import { FollowerCardSheet } from "./apps/follower-card-sheet.mjs";
 import { followerCardContext, renderFollowerCard, FOLLOWER_CARD_TEMPLATE } from "./follower-card.mjs";
 import * as attackLogic from "./attack-logic.mjs";
+import * as damageType from "./damage-type.mjs";
 import { installAttackRollPatch, PRE_ATTACK_HOOK } from "./patches/attack-roll.mjs";
 import { installAttackDisplayPatch } from "./patches/attack-display.mjs";
 
@@ -98,6 +99,12 @@ const localImpl = Object.freeze({
    * ctx (terms / throwTarget / targetAc) — the seam for effect replacer/dedup logic.
    */
   attack: { ...attackLogic, PRE_ATTACK_HOOK },
+  /**
+   * Weapon damage typing (damage-type.mjs): resolves a type LIVE through
+   * acks-equipment's classifier — no annotate step, no second copy of the weapon
+   * table — plus per-type icons and the equipped-weapon attack option list.
+   */
+  damageType,
 });
 
 // Core-deferral shim (FAMILY.md §3d): if/when a surface is upstreamed into the

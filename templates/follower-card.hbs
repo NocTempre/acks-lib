@@ -158,24 +158,20 @@
       {{/if}}
       <div class="fc-attacks">
         <div class="fc-attacks-head"><span></span><span>{{localize "ACKS-LIB.followerCard.at"}}</span><span>{{localize "ACKS-LIB.followerCard.dmg"}}</span></div>
-        {{#if isMonster}}
+        {{#each attacks}}
           <div class="fc-attack-row">
-            {{#if editable}}<a data-action="fcRollAttack" data-attack="attack" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS-LIB.followerCard.attack"}} {{attackThrow}}+</a>{{else}}<label>{{localize "ACKS-LIB.followerCard.attack"}} {{attackThrow}}+</label>{{/if}}
-            <span>{{attacksCount}}</span>
-            <span>{{attackDamage}}</span>
+            {{#if @root.editable}}
+              <a data-action="fcRollAttack" data-attack="{{this.type}}" data-item-id="{{this.itemId}}" class="fc-roll"
+                 data-tooltip="{{this.label}}{{#if this.damageTypeLabel}} — {{this.damageTypeLabel}}{{/if}}">
+                <i class="{{this.icon}}"></i> {{this.label}} {{this.target}}+ <span class="fc-attack-bonus">{{this.bonus}}</span>
+              </a>
+            {{else}}
+              <label data-tooltip="{{this.damageTypeLabel}}"><i class="{{this.icon}}"></i> {{this.label}} {{this.target}}+ <span class="fc-attack-bonus">{{this.bonus}}</span></label>
+            {{/if}}
+            <span>{{this.at}}</span>
+            <span>{{this.dmg}}</span>
           </div>
-        {{else}}
-          <div class="fc-attack-row">
-            {{#if editable}}<a data-action="fcRollAttack" data-attack="melee" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS.Melee"}} {{melee.target}}+ <span class="fc-attack-bonus">{{melee.value}}</span></a>{{else}}<label>{{localize "ACKS.Melee"}} {{melee.target}}+ <span class="fc-attack-bonus">{{melee.value}}</span></label>{{/if}}
-            <span>{{melee.at}}</span>
-            <span>{{melee.dmg}}</span>
-          </div>
-          <div class="fc-attack-row">
-            {{#if editable}}<a data-action="fcRollAttack" data-attack="missile" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS.Missile"}} {{missile.target}}+ <span class="fc-attack-bonus">{{missile.value}}</span></a>{{else}}<label>{{localize "ACKS.Missile"}} {{missile.target}}+ <span class="fc-attack-bonus">{{missile.value}}</span></label>{{/if}}
-            <span>{{missile.at}}</span>
-            <span>{{missile.dmg}}</span>
-          </div>
-        {{/if}}
+        {{/each}}
       </div>
     </div>
 

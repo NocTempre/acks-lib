@@ -155,14 +155,30 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
     else item.show?.();
   }
 
-  /** Roll a melee/missile (or monster) attack — mirrors the core sheet. */
+  /**
+   * Roll one attack option. A row backed by an equipped weapon rolls THAT weapon
+   * (so its damage die and bonus ride along); unarmed / improvised / a monster's
+   * natural attack roll bare, as core does with no item.
+   */
   static #onRollAttack(event, target) {
     const type = target.dataset.attack || "melee";
+    const itemId = target.dataset.itemId;
     let skip = false;
     try {
       skip = !!event?.[game.settings.get("acks", "skip-dialog-key")];
     } catch {
       /* setting absent — show the dialog */
+    }
+    const item = itemId ? this.actor.items.get(itemId) : null;
+    if (item) {
+      // Route through the item so acks-equipment's per-weapon RAW modifiers apply;
+      // pass the resolved type so a thrown melee weapon rolls the row you clicked.
+      this.actor.targetAttack?.(
+        { actor: this.actor, item: item.toObject(), roll: { save: item.system?.save, target: null } },
+        type,
+        { type, skipDialog: skip },
+      );
+      return;
     }
     this.actor.targetAttack?.({ actor: this.actor, roll: {} }, type, { type, skipDialog: skip });
   }
