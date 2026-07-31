@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.33.0
+
+- **The build strips now show the JJ class-build selections, and sit across the
+  card's bottom.** 0.32.0 used acks-equipment's internal weapon *groupings*, which
+  are not what a class picks. The strips are now the actual class-build choices
+  (JJ pp. 290–291): the **weapon selection ladder** (restricted → narrow → broad →
+  unrestricted, lit to the class's breadth, derived through acks-equipment's own
+  documented token grammar), the **armour ladder** with all five rungs
+  (unarmoured → very light → light → medium → heavy — very light had been missing),
+  and the five fighting styles. **Shield is its own pill**, not a rung: RR pp.
+  128/140–141 give it its own armour category, and RAW it only benefits a class
+  with the Weapon & Shield style (JJ p. 291), so that style lights it.
+  Specialization/focus still reads gold.
+- They moved **out of the Powers/Prof panel into a labelled footer** (Style /
+  Weapons / Armour) across the bottom of the card, which is what made that panel
+  cluttered.
+
 ## 0.32.0
 
 - **Fighting styles, weapon proficiency and armour become always-visible icon

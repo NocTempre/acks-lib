@@ -136,19 +136,6 @@
     <div class="fc-mid">
       <div class="fc-panel fc-powers">
         <div class="fc-panel-title">{{localize "ACKS-LIB.followerCard.powers"}}</div>
-        {{#if strips.any}}
-        <div class="fc-strips">
-          <div class="fc-strip" data-tooltip="{{localize 'ACKS-LIB.followerCard.styles'}}">
-            {{#each strips.styles}}<span class="fc-pill{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}"><i class="{{this.icon}}"></i></span>{{/each}}
-          </div>
-          <div class="fc-strip" data-tooltip="{{localize 'ACKS-LIB.followerCard.weaponProf'}}">
-            {{#each strips.weapons}}<span class="fc-pill chip{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}">{{this.chip}}</span>{{/each}}
-          </div>
-          <div class="fc-strip" data-tooltip="{{localize 'ACKS-LIB.followerCard.armourProf'}}">
-            {{#each strips.armour}}<span class="fc-pill{{#if this.on}} on{{/if}}" data-tooltip="{{this.label}}"><i class="{{this.icon}}"></i></span>{{/each}}
-          </div>
-        </div>
-        {{/if}}
         {{#if powers.length}}<ul class="fc-prof-list">{{#each powers}}<li class="fc-prof-row">
           <span class="fc-prof-name">{{this.name}}</span>
           {{#if @root.editable}}{{#if this.rollable}}<a data-action="fcRollProficiency" data-item-id="{{this.id}}" class="fc-prof-roll" data-tooltip="{{localize 'ACKS-LIB.followerCard.roll'}} {{this.name}}"><i class="fas fa-dice-d20"></i></a>{{/if}}{{/if}}
@@ -201,6 +188,25 @@
     </div>
 
   </div>
+
+  {{!-- Class-build selections (JJ p.290-291), across the bottom: every slot is
+        shown, a trained one lights, specialization/focus reads gold. --}}
+  {{#if strips.any}}
+  <footer class="fc-build">
+    <span class="fc-build-group" data-tooltip="{{localize 'ACKS-LIB.followerCard.styles'}}">
+      <span class="fc-build-label">{{localize "ACKS-LIB.followerCard.stylesShort"}}</span>
+      {{#each strips.styles}}<span class="fc-pill{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}"><i class="{{this.icon}}"></i></span>{{/each}}
+    </span>
+    <span class="fc-build-group" data-tooltip="{{localize 'ACKS-LIB.followerCard.weaponProf'}}">
+      <span class="fc-build-label">{{localize "ACKS-LIB.followerCard.weaponShort"}}</span>
+      {{#each strips.weapons}}<span class="fc-pill{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}"><i class="{{this.icon}}"></i></span>{{/each}}
+    </span>
+    <span class="fc-build-group" data-tooltip="{{localize 'ACKS-LIB.followerCard.armourProf'}}">
+      <span class="fc-build-label">{{localize "ACKS-LIB.followerCard.armourShort"}}</span>
+      {{#each strips.armour}}<span class="fc-pill{{#if this.on}} on{{/if}}{{#if this.gold}} gold{{/if}}" data-tooltip="{{this.label}}"><i class="{{this.icon}}"></i></span>{{/each}}
+    </span>
+  </footer>
+  {{/if}}
 
   {{#unless editable}}
     <footer class="fc-actions">

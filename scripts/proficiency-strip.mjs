@@ -26,25 +26,42 @@ const STYLES = [
   { key: "missile", icon: "fas fa-crosshairs", label: "ACKS-LIB.style.missile", fallback: "Missile" },
 ];
 
-/** Weapon categories. Short text chips — the free icon set has no distinct
- *  axe/bow/mace glyphs, and a shared glyph would say less than two letters. */
-const WEAPON_CATEGORIES = [
-  { key: "axe", chip: "AX", label: "ACKS-LIB.weaponCat.axe", fallback: "Axes" },
-  { key: "bow", chip: "BW", label: "ACKS-LIB.weaponCat.bow", fallback: "Bows" },
-  { key: "crossbow", chip: "XB", label: "ACKS-LIB.weaponCat.crossbow", fallback: "Crossbows" },
-  { key: "flailhammermace", chip: "MC", label: "ACKS-LIB.weaponCat.flailHammerMace", fallback: "Flails, Hammers & Maces" },
-  { key: "sworddagger", chip: "SW", label: "ACKS-LIB.weaponCat.swordDagger", fallback: "Swords & Daggers" },
-  { key: "spearpolearm", chip: "SP", label: "ACKS-LIB.weaponCat.spearPolearm", fallback: "Spears & Polearms" },
-  { key: "other", chip: "OT", label: "ACKS-LIB.weaponCat.other", fallback: "Other" },
+/**
+ * Weapon SELECTION ladder — the class-build choice (JJ p. 290), not a list of
+ * weapon groups: a class picks restricted / narrow / broad / unrestricted, and
+ * everything at or below that breadth is available.
+ */
+const WEAPON_BREADTH = [
+  { key: "restricted", icon: "fas fa-lock", label: "ACKS-LIB.breadth.restricted", fallback: "Restricted" },
+  { key: "narrow", icon: "fas fa-angle-right", label: "ACKS-LIB.breadth.narrow", fallback: "Narrow" },
+  { key: "broad", icon: "fas fa-angles-right", label: "ACKS-LIB.breadth.broad", fallback: "Broad" },
+  { key: "unrestricted", icon: "fas fa-infinity", label: "ACKS-LIB.breadth.unrestricted", fallback: "Unrestricted" },
 ];
 
-/** Armour ladder, lightest first. A rank at or below the max is trained. */
+/** Armour SELECTION ladder (JJ p. 290), lightest first — five rungs, not four. */
 const ARMOUR = [
-  { key: "none", icon: "fas fa-user", label: "ACKS-LIB.armour.none", fallback: "Unarmoured" },
-  { key: "light", icon: "fas fa-shirt", label: "ACKS-LIB.armour.light", fallback: "Light" },
-  { key: "medium", icon: "fas fa-vest", label: "ACKS-LIB.armour.medium", fallback: "Medium" },
+  { key: "unarmored", icon: "fas fa-user", label: "ACKS-LIB.armour.unarmored", fallback: "Unarmoured" },
+  { key: "verylight", icon: "fas fa-shirt", label: "ACKS-LIB.armour.veryLight", fallback: "Very Light" },
+  { key: "light", icon: "fas fa-vest", label: "ACKS-LIB.armour.light", fallback: "Light" },
+  { key: "medium", icon: "fas fa-user-shield", label: "ACKS-LIB.armour.medium", fallback: "Medium" },
   { key: "heavy", icon: "fas fa-shield", label: "ACKS-LIB.armour.heavy", fallback: "Heavy" },
 ];
+
+/**
+ * Breadth of a weapon-proficiency token set, read through acks-equipment's own
+ * documented grammar (proficiency.mjs): `all` is unrestricted; `missile:all` and
+ * `melee:<size>` are the broad choices; a category token is narrow; bare weapon
+ * keys are the restricted list.
+ */
+const CATEGORY_TOKENS = new Set(["axe", "bow", "crossbow", "flailhammermace", "sworddagger", "spearpolearm", "other"]);
+function breadthOf(all, tokens) {
+  if (all) return "unrestricted";
+  const raw = [...tokens];
+  if (!raw.length) return null;
+  if (raw.some((t) => t.startsWith("missileall") || t.startsWith("melee"))) return "broad";
+  if (raw.some((t) => CATEGORY_TOKENS.has(t))) return "narrow";
+  return "restricted";
+}
 
 const loc = (key, fallback) => (game.i18n?.has?.(key) ? game.i18n.localize(key) : fallback);
 const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z]/g, "");
@@ -123,12 +140,16 @@ export function profileStrips(actor) {
     /* no focus data — no gold, which is the honest default */
   }
 
-  const weapons = WEAPON_CATEGORIES.map((c) => ({
-    key: c.key,
-    chip: c.chip,
-    label: loc(c.label, c.fallback),
-    on: allWeapons || profTokens.has(c.key),
-    gold: focusCats.has(c.key),
+  // The class's weapon SELECTION: light the ladder up to its breadth. A focused
+  // group (Weapon Focus, RR p.121) golds the top lit rung.
+  const breadth = breadthOf(allWeapons, profTokens);
+  const breadthRank = WEAPON_BREADTH.findIndex((b) => b.key === breadth);
+  const weapons = WEAPON_BREADTH.map((b, i) => ({
+    key: b.key,
+    icon: b.icon,
+    label: loc(b.label, b.fallback),
+    on: breadthRank >= 0 && i <= breadthRank,
+    gold: focusCats.size > 0 && i === breadthRank,
   }));
 
   const maxRank = ARMOUR.findIndex((a) => a.key === norm(armourMax));
@@ -139,6 +160,16 @@ export function profileStrips(actor) {
     on: maxRank >= 0 && i <= maxRank,
     gold: false,
   }));
+  // A SHIELD is its own armour category (RR pp. 128/140-141), not a rung on the
+  // suit ladder — and RAW it only benefits a class with the Weapon & Shield
+  // fighting style (JJ p. 291), so that style is what lights it.
+  armour.push({
+    key: "shield",
+    icon: "fas fa-shield-halved",
+    label: loc("ACKS-LIB.armour.shield", "Shield (+1 AC — needs the Weapon & Shield style)"),
+    on: trained.has("weaponshield"),
+    gold: spec.has("weaponshield"),
+  });
 
   return { styles, weapons, armour, any: true };
 }
