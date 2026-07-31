@@ -83,5 +83,19 @@
   "ACKS-LIB.template.emptyOption": "empty — drop an actor here",
   "ACKS-LIB.template.captureHint": "Drop an actor on this row to capture it as this option.",
   "ACKS-LIB.template.warn.dupKey": "That name is already used here.",
-  "ACKS-LIB.template.info.captured": "Captured {name} into option {option}."
+  "ACKS-LIB.template.info.captured": "Captured {name} into option {option}.",
+  "ACKS-LIB.sheet.follower": "Follower Card",
+  "ACKS-LIB.followerCard.monster": "Monster",
+  "ACKS-LIB.followerCard.ac": "AC",
+  "ACKS-LIB.followerCard.hp": "HP",
+  "ACKS-LIB.followerCard.mod": "Mod",
+  "ACKS-LIB.followerCard.speed": "SPD",
+  "ACKS-LIB.followerCard.powers": "Powers / Prof.",
+  "ACKS-LIB.followerCard.equipment": "Equipment",
+  "ACKS-LIB.followerCard.at": "#AT",
+  "ACKS-LIB.followerCard.dmg": "DMG",
+  "ACKS-LIB.followerCard.attack": "Attack",
+  "ACKS-LIB.followerCard.open": "Open full sheet",
+  "ACKS-LIB.followerCard.expand": "Expand / details",
+  "ACKS-LIB.followerCard.noFullSheet": "No full sheet is registered for this actor type."
 }

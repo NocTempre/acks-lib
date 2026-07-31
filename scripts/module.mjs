@@ -43,11 +43,21 @@ import * as templateLogic from "./template-logic.mjs";
 import { GroupSheet } from "./apps/group-sheet.mjs";
 import { TemplateSheet } from "./apps/template-sheet.mjs";
 import { registerMountCleanup } from "./mount.mjs";
+import { FollowerCardSheet } from "./apps/follower-card-sheet.mjs";
+import { followerCardContext, renderFollowerCard, FOLLOWER_CARD_TEMPLATE } from "./follower-card.mjs";
 
 /** The actor sub-types this library adds to the system. */
 export const ANIMAL_TYPE = `${MODULE_ID}.animal`;
 export const GROUP_TYPE = `${MODULE_ID}.group`;
 export const TEMPLATE_TYPE = `${MODULE_ID}.template`;
+
+/**
+ * The Follower Card is the per-instance default sheet for RETAINERS (hirelings) of
+ * these types — keyed on the core `system.retainer.enabled` flag, so one rule
+ * covers character AND monster hirelings without depending on acks-henchmen.
+ */
+const FOLLOWER_TYPES = new Set(["character", "monster"]);
+const FOLLOWER_SHEET_KEY = `${MODULE_ID}.FollowerCardSheet`;
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
@@ -77,6 +87,8 @@ const localImpl = Object.freeze({
   itemModel,
   /** System actor reads: abilityMod / classLevel / monsterHd / hitDiceOrLevel. */
   actorRead,
+  /** The printed "Follower Card": build context, render to HTML, the sheet, the template. */
+  followerCard: { context: followerCardContext, render: renderFollowerCard, Sheet: FollowerCardSheet, TEMPLATE: FOLLOWER_CARD_TEMPLATE },
 });
 
 // Core-deferral shim (FAMILY.md §3d): if/when a surface is upstreamed into the
@@ -101,6 +113,10 @@ Hooks.once("init", () => {
   if (mod) mod.api = api;
 
   registerMountCleanup();
+
+  // Warm the Follower Card template so the hirelings-tab grid (rendered by
+  // acks-henchmen, cross-module) has no fetch miss on first paint.
+  foundry.applications.handlebars.loadTemplates([FOLLOWER_CARD_TEMPLATE]).catch(() => {});
 
   // Printed-character-sheet theme (styles/sheet-theme.css): the stylesheet is
   // inert until this class lands on <body>, so the setting is a pure toggle.
@@ -195,4 +211,48 @@ Hooks.once("ready", () => {
     label: "ACKS-LIB.sheet.template",
   });
   console.log(`${MODULE_ID} | ${TEMPLATE_TYPE} sheet registered.`);
+
+  // The Follower Card: an ALTERNATIVE sheet for characters and monsters (never
+  // makeDefault — PCs and wild monsters keep their full system sheet). It becomes
+  // the per-instance default for retainers via flags.core.sheetClass (below).
+  foundry.applications.apps.DocumentSheetConfig.registerSheet(Actor, MODULE_ID, FollowerCardSheet, {
+    types: ["character", "monster"],
+    makeDefault: false,
+    label: "ACKS-LIB.sheet.follower",
+  });
+  console.log(`${MODULE_ID} | FollowerCardSheet registered (character, monster).`);
+
+  // One-time GM sweep: existing retainers with no explicit sheet choice adopt the
+  // card. Idempotent (only actors missing flags.core.sheetClass); never clobbers a
+  // hand-picked sheet.
+  if (game.user.isGM) {
+    const updates = game.actors
+      .filter((a) => FOLLOWER_TYPES.has(a.type) && a.system?.retainer?.enabled && !a.getFlag("core", "sheetClass"))
+      .map((a) => ({ _id: a.id, "flags.core.sheetClass": FOLLOWER_SHEET_KEY }));
+    if (updates.length) {
+      Actor.updateDocuments(updates).catch((err) => console.error(`${MODULE_ID} | follower-card sweep failed`, err));
+    }
+  }
+});
+
+/* Retainers default to the Follower Card. Keyed on the core retainer flag so it
+ * covers character AND monster hirelings without depending on acks-henchmen; only
+ * ever SET (never clobbers a manual sheet choice), and never auto-reverts on
+ * dismiss. preCreate catches actors born as retainers; updateActor catches a plain
+ * actor flipped into service (drop-as-henchman, hires that set the flag). */
+Hooks.on("preCreateActor", (doc, data) => {
+  if (game.system?.id !== "acks") return;
+  if (!FOLLOWER_TYPES.has(doc.type)) return;
+  if (!foundry.utils.getProperty(data ?? {}, "system.retainer.enabled")) return;
+  if (foundry.utils.getProperty(data ?? {}, "flags.core.sheetClass")) return;
+  doc.updateSource({ "flags.core.sheetClass": FOLLOWER_SHEET_KEY });
+});
+
+Hooks.on("updateActor", (actor, changes, options, userId) => {
+  if (userId !== game.userId) return; // only the originating client writes, once
+  if (game.system?.id !== "acks") return;
+  if (!FOLLOWER_TYPES.has(actor.type)) return;
+  if (foundry.utils.getProperty(changes, "system.retainer.enabled") !== true) return;
+  if (actor.getFlag("core", "sheetClass")) return;
+  actor.update({ "flags.core.sheetClass": FOLLOWER_SHEET_KEY });
 });

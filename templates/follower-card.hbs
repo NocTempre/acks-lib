@@ -1,0 +1,174 @@
+{{!-- acks-lib Follower Card — the printed ACKS II henchman/follower card as a
+      compact actor view. Self-contained (no partials); every selector scoped under
+      .acks-follower-card.
+
+      `editable` (the FollowerCardSheet, a hireling's own sheet) swaps display spans
+      for `name=` inputs that submit through that sheet's form. Read-only mode (the
+      card embedded in an employer's hirelings tab) MUST emit no `name=` inputs —
+      they would bind to the employer's form — only the system's own hireling
+      actions (hirelingShow/Loyalty/Morale/Delete), which resolve the hireling by the
+      data-item-id on the card root. --}}
+<div class="acks-lib-follower-card{{#if isMonster}} is-monster{{/if}}{{#unless editable}} readonly{{/unless}}" data-item-id="{{id}}">
+
+  {{!-- Name banner --}}
+  <header class="fc-name">
+    {{#if img}}<img class="fc-portrait" src="{{img}}" alt="{{name}}" />{{/if}}
+    {{#if editable}}
+      <input type="text" name="name" value="{{name}}" placeholder="{{localize 'Name'}}" />
+    {{else}}
+      <a data-action="hirelingShow" class="fc-open">{{name}}</a>
+    {{/if}}
+  </header>
+
+  {{!-- CLASS · LEVEL · XP · ALIGNMENT --}}
+  <div class="fc-topline">
+    <div class="fc-field fc-class">
+      <label>{{localize "ACKS.details.class"}}</label>
+      {{#if isMonster}}
+        <span>{{localize "ACKS-LIB.followerCard.monster"}}</span>
+      {{else if editable}}
+        <input type="text" name="system.details.class" value="{{klass}}" />
+      {{else}}
+        <span>{{klass}}</span>
+      {{/if}}
+    </div>
+    <div class="fc-field fc-level">
+      <label>{{localize levelLabel}}</label>
+      {{#if editable}}
+        {{#if levelReadonly}}<span>{{level}}</span>{{else}}<input type="text" name="system.details.level" value="{{level}}" data-dtype="Number" />{{/if}}
+      {{else}}
+        <span>{{level}}</span>
+      {{/if}}
+    </div>
+    <div class="fc-field fc-xp">
+      <label>{{localize "ACKS.details.experience.baseshort"}}</label>
+      {{#if editable}}
+        {{#if isMonster}}
+          <input type="text" name="system.details.xp" value="{{xp}}" data-dtype="Number" />
+        {{else}}
+          <input type="text" name="system.details.xp.value" value="{{xp}}" data-dtype="Number" />
+        {{/if}}
+      {{else}}
+        <span>{{xp}}</span>
+      {{/if}}
+    </div>
+    <div class="fc-field fc-alignment">
+      <label>{{localize "ACKS.details.alignment"}}</label>
+      {{#if editable}}<input type="text" name="system.details.alignment" value="{{alignment}}" />{{else}}<span>{{alignment}}</span>{{/if}}
+    </div>
+  </div>
+
+  <div class="fc-body">
+
+    {{!-- LEFT RAIL: AC, HP, abilities, SPD/ENC/MORALE/LOYALTY --}}
+    <div class="fc-rail">
+      <div class="fc-acx">
+        <div class="fc-box fc-ac">
+          <label>{{localize "ACKS-LIB.followerCard.ac"}}</label>
+          <span>{{ac}}</span>
+        </div>
+        <div class="fc-box fc-hp">
+          <label>{{localize "ACKS-LIB.followerCard.hp"}}</label>
+          {{#if editable}}
+            <span class="fc-hp-edit">
+              <input type="number" name="system.hp.value" value="{{hp.value}}" data-dtype="Number" />/<input type="number" name="system.hp.max" value="{{hp.max}}" data-dtype="Number" />
+            </span>
+          {{else}}
+            <span>{{hp.value}} / {{hp.max}}</span>
+          {{/if}}
+        </div>
+      </div>
+
+      {{#if hasAbilities}}
+        <div class="fc-abilities">
+          <div class="fc-ability-head"><span></span><span></span><span>{{localize "ACKS-LIB.followerCard.mod"}}</span></div>
+          {{#each abilities}}
+            <div class="fc-ability">
+              <label>{{this.label}}</label>
+              {{#if @root.editable}}<input type="number" name="system.scores.{{this.key}}.value" value="{{this.value}}" data-dtype="Number" />{{else}}<span class="fc-ability-value">{{this.value}}</span>{{/if}}
+              <span class="fc-ability-mod">{{this.mod}}</span>
+            </div>
+          {{/each}}
+        </div>
+      {{/if}}
+
+      <div class="fc-vitals">
+        <div class="fc-field">
+          <label>{{localize "ACKS-LIB.followerCard.speed"}}</label>
+          <span>{{speed.primary}}{{#if speed.secondary}} / {{speed.secondary}}{{/if}}</span>
+        </div>
+        {{#if enc}}
+          <div class="fc-field">
+            <label>{{localize "ACKS.Encumbrance"}}</label>
+            <span>{{enc.value}} / {{enc.max}}</span>
+          </div>
+        {{/if}}
+        <div class="fc-field">
+          <label>{{localize "ACKS.details.morale"}}</label>
+          {{#if editable}}
+            <input type="number" name="system.details.morale" value="{{morale}}" data-dtype="Number" min="-6" max="4" />
+          {{else}}
+            <a data-action="hirelingMorale" class="fc-roll"><i class="fas fa-dice-d20"></i> {{morale}}</a>
+          {{/if}}
+        </div>
+        <div class="fc-field">
+          <label>{{localize "ACKS.Loyalty"}}</label>
+          {{#if editable}}
+            <input type="number" name="system.retainer.loyalty" value="{{loyalty}}" data-dtype="Number" min="-4" max="4" />
+          {{else}}
+            <a data-action="hirelingLoyalty" class="fc-roll"><i class="fas fa-dice-d20"></i> {{loyalty}}</a>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+
+    {{!-- MIDDLE: POWERS / PROF. + attacks --}}
+    <div class="fc-mid">
+      <div class="fc-panel fc-powers">
+        <div class="fc-panel-title">{{localize "ACKS-LIB.followerCard.powers"}}</div>
+        {{#if powers.length}}<ul>{{#each powers}}<li>{{this}}</li>{{/each}}</ul>{{/if}}
+      </div>
+      <div class="fc-attacks">
+        <div class="fc-attacks-head"><span></span><span>{{localize "ACKS-LIB.followerCard.at"}}</span><span>{{localize "ACKS-LIB.followerCard.dmg"}}</span></div>
+        {{#if isMonster}}
+          <div class="fc-attack-row">
+            <label>{{localize "ACKS-LIB.followerCard.attack"}} {{attackThrow}}+</label>
+            <span>{{attacksCount}}</span>
+            <span>{{attackDamage}}</span>
+          </div>
+        {{else}}
+          <div class="fc-attack-row">
+            <label>{{localize "ACKS.Melee"}} {{melee.value}}</label>
+            <span>{{melee.at}}</span>
+            <span>{{melee.dmg}}</span>
+          </div>
+          <div class="fc-attack-row">
+            <label>{{localize "ACKS.Missile"}} {{missile.value}}</label>
+            <span>{{missile.at}}</span>
+            <span>{{missile.dmg}}</span>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+
+    {{!-- RIGHT: NOTES + EQUIPMENT --}}
+    <div class="fc-right">
+      <div class="fc-panel fc-notes">
+        <div class="fc-panel-title">{{localize "ACKS.category.notes"}}</div>
+        {{#if editable}}<textarea name="{{notesPath}}" rows="4">{{notes}}</textarea>{{else}}<div class="fc-notes-body">{{notes}}</div>{{/if}}
+      </div>
+      <div class="fc-panel fc-equipment">
+        <div class="fc-panel-title">{{localize "ACKS-LIB.followerCard.equipment"}}</div>
+        {{#if equipment.length}}<ul>{{#each equipment}}<li>{{this}}</li>{{/each}}</ul>{{/if}}
+      </div>
+    </div>
+
+  </div>
+
+  {{#unless editable}}
+    <footer class="fc-actions">
+      <a data-action="hirelingShow" data-tooltip="{{localize 'ACKS-LIB.followerCard.open'}}"><i class="fas fa-up-right-from-square"></i></a>
+      <a data-action="hirelingDelete" data-tooltip="{{localize 'ACKS.Delete'}}"><i class="fas fa-trash"></i></a>
+    </footer>
+  {{/unless}}
+</div>

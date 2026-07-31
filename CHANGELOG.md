@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.28.0
+
+- **Follower Card — the printed henchman/follower card as a compact actor sheet.**
+  A new `FollowerCardSheet` renders an actor as the half-page ACKS II follower card
+  (name banner; class·level·xp·alignment; AC + HP + the six ability boxes;
+  SPD/ENC/morale/loyalty; powers·prof; notes; equipment; melee/missile · #AT · DMG),
+  built only from the sheet-theme tokens so it matches the printed look in light and
+  dark. One template serves two surfaces: this editable sheet, and the read-only
+  cards acks-henchmen re-skins the character sheet's hirelings tab into (via the new
+  `acksLib.followerCard` api — `context` / `render` / `Sheet` / `TEMPLATE`). An
+  **Expand / details** header button opens the full system sheet for what the card
+  omits (items, spells, effects).
+- **Hirelings default to the card.** Keyed on the core `system.retainer.enabled`
+  flag — so it covers **character and monster** hirelings alike, with no dependency
+  on acks-henchmen — the card is made a retainer's per-instance default sheet
+  (`flags.core.sheetClass`) on creation, when a plain actor is flipped into service,
+  and via a one-time GM sweep for existing retainers. It only ever sets the flag when
+  unset (a hand-picked sheet is never clobbered) and never auto-reverts; PCs and wild
+  monsters keep their full system sheet. The card is registered as an alternative
+  sheet for both types, so anyone can switch to or from it by hand. No system files
+  are touched — the card is a module-registered alternate sheet made default
+  per-instance. See docs/FOLLOWER-CARD.md.
+
 ## 0.27.0
 
 **The sheet theme moves onto the measured ACKS II palette.** `--acks-maroon:
