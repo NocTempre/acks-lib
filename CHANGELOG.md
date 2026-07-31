@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.30.1
+
+- **The core sheet's folded Melee/Ranged display is now fully superseded**
+  (`patches/attack-display.mjs`). 0.30.0 fixed the roll; the character sheet still
+  printed Melee/Ranged as a bonus-only number with the attack throw omitted — so
+  the wrong figure stayed reachable and editing the throw appeared to do nothing.
+  The patch layer now overwrites those boxes on every render with the same model
+  the roll uses — `10+ +3` (throw target · roll bonus) — and a tooltip naming both
+  halves. Core source is untouched (runtime replacement only, character sheets
+  only); the rollable headers keep their own wiring. Live-verified: the box reads
+  `10+ +3`, and moving the throw to 7 moves the display to `7+ +3`.
+
 ## 0.30.0
 
 - **The attack roll is re-modeled at the engine root: throw = moving target,

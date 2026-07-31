@@ -123,5 +123,6 @@
   "ACKS-LIB.attack.hitsAc": "hits AC {ac}",
   "ACKS-LIB.attack.missesAc": "misses (would hit AC {ac})",
   "ACKS-LIB.attack.fumble": "natural 1 — automatic miss",
-  "ACKS-LIB.attack.critical": "natural 20 — automatic hit"
+  "ACKS-LIB.attack.critical": "natural 20 — automatic hit",
+  "ACKS-LIB.attack.displayTooltip": "Attack throw {target}+ — the target, moves with class/level. Roll bonus {bonus} = ability {ability} + adjustment {adjustment}, added to the d20."
 }

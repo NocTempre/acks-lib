@@ -47,6 +47,7 @@ import { FollowerCardSheet } from "./apps/follower-card-sheet.mjs";
 import { followerCardContext, renderFollowerCard, FOLLOWER_CARD_TEMPLATE } from "./follower-card.mjs";
 import * as attackLogic from "./attack-logic.mjs";
 import { installAttackRollPatch, PRE_ATTACK_HOOK } from "./patches/attack-roll.mjs";
+import { installAttackDisplayPatch } from "./patches/attack-display.mjs";
 
 /** The actor sub-types this library adds to the system. */
 export const ANIMAL_TYPE = `${MODULE_ID}.animal`;
@@ -203,8 +204,13 @@ Hooks.once("ready", () => {
   if (game.system?.id !== "acks") return;
 
   // Own the attack roll (throw = target, bonuses = auditable stack) unless the
-  // world opted out. At ready: the system's Actor class is final here.
-  if (game.settings.get(MODULE_ID, "attackRollPatch")) installAttackRollPatch();
+  // world opted out. At ready: the system's Actor class is final here. The
+  // display patch supersedes the core sheet's folded Melee/Ranged boxes so the
+  // wrong number is unreachable — same setting, one model everywhere.
+  if (game.settings.get(MODULE_ID, "attackRollPatch")) {
+    installAttackRollPatch();
+    installAttackDisplayPatch();
+  }
   const registered = CONFIG.Actor?.sheetClasses?.monster ?? {};
   const entries = Object.values(registered);
   const MonsterSheet = entries.find((e) => e.default)?.cls ?? entries[0]?.cls ?? null;
