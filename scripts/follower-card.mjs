@@ -164,14 +164,14 @@ export function followerCardContext(actor, { editable = false } = {}) {
       weaponDamage(weapons, "melee", num(sys.damage?.mod?.melee)) ||
       weaponDamage(weapons, "missile", num(sys.damage?.mod?.missile));
   } else {
-    // The full to-hit bonus the attack roll uses (actor.rollAttack): bba (= 10 −
-    // attack throw, the base-throw improvement) + the ability mod + the melee/
-    // missile mod. Earlier the card showed only the ability+mod part.
-    const bba = num(sys.thac0?.bba);
-    const meleeBonus = bba + num(sys.scores?.str?.mod) + num(sys.thac0?.mod?.melee);
-    const missileBonus = bba + num(sys.scores?.dex?.mod) + num(sys.thac0?.mod?.missile);
-    ctx.melee = { value: signed(meleeBonus), raw: meleeBonus, at: 1, dmg: weaponDamage(weapons, "melee", num(sys.damage?.mod?.melee)) };
-    ctx.missile = { value: signed(missileBonus), raw: missileBonus, at: 1, dmg: weaponDamage(weapons, "missile", num(sys.damage?.mod?.missile)) };
+    // Target vs bonus, kept DISTINCT (the ACKS model, matching the patched roll):
+    // the attack throw is the MOVING TARGET (class/level); the ability mod and
+    // attack adjustment are ROLL-ADD bonuses. Never folded into one number.
+    const throwTarget = num(sys.thac0?.throw, 10);
+    const meleeBonus = num(sys.scores?.str?.mod) + num(sys.thac0?.mod?.melee);
+    const missileBonus = num(sys.scores?.dex?.mod) + num(sys.thac0?.mod?.missile);
+    ctx.melee = { target: throwTarget, value: signed(meleeBonus), at: 1, dmg: weaponDamage(weapons, "melee", num(sys.damage?.mod?.melee)) };
+    ctx.missile = { target: throwTarget, value: signed(missileBonus), at: 1, dmg: weaponDamage(weapons, "missile", num(sys.damage?.mod?.missile)) };
   }
 
   // Adventuring throws (character only) get their own rollable row — but only for

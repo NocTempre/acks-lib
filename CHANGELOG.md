@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.30.0
+
+- **The attack roll is re-modeled at the engine root: throw = moving target,
+  bonuses = auditable stack** (`patches/attack-roll.mjs`, acks-lib's patch-layer
+  charter). ACKS distinguishes the attack THROW — a target that moves with class/
+  level — from BONUSES added to the roll (ability, magic, situational). Core's
+  `rollAttack` folded the target movement into the die pool (`bba = 10 − throw`),
+  so the chat total silently contained the target-side adjustment and no modifier
+  could be attributed. acks-lib now owns the method: the roll is
+  `1d20 + labeled terms` (each visible in the dice tooltip), resolved as
+  `die + Σbonuses ≥ throw + target AC`, with the die specials preserved (nat 1
+  misses, nat 20 hits, neither under exploding 20s). **Hit outcomes are identical
+  to core's for identical inputs** — a 14,000-case parity sweep against core's
+  folded resolution runs in `npm test`. The chat card states the throw as a
+  target ("Attack throw 8+ vs AC 4 → needs 12+"), itemizes the stack
+  ("11 + 2 (Strength) + 1 (Weapon) = 14 → hits AC 6"), and renders core's own
+  template so damage application and chat listeners are untouched.
+- **The seam for planned effect logic:** `acksLibPreAttackRoll(actor, ctx)` fires
+  before every attack with the mutable term stack (`ctx.terms`, stable keys), the
+  movable target (`ctx.throwTarget`), and `ctx.targetAc` — replacer/deduplication
+  effect logic operates there instead of fighting a folded total.
+  acks-equipment's existing `rollAttack` WRAPPER composes on top unchanged (its
+  RAW deltas arrive through the weapon term); registered via libWrapper OVERRIDE
+  when available, plain method patch otherwise; world setting
+  (`attackRollPatch`, default on) restores the stock roll. Exposed as
+  `acksLib.attack` (terms/resolver/hook name).
+- **Follower Card attack lines respect the distinction**: "Melee 8+ +2" — the
+  throw target (moves with level) and the roll bonus (ability + adjustment),
+  never folded into one number.
+
 ## 0.29.4
 
 - **Follower Card sizes to its content.** The sheet had a fixed height taller than a

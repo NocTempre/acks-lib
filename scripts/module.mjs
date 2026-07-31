@@ -45,6 +45,8 @@ import { TemplateSheet } from "./apps/template-sheet.mjs";
 import { registerMountCleanup } from "./mount.mjs";
 import { FollowerCardSheet } from "./apps/follower-card-sheet.mjs";
 import { followerCardContext, renderFollowerCard, FOLLOWER_CARD_TEMPLATE } from "./follower-card.mjs";
+import * as attackLogic from "./attack-logic.mjs";
+import { installAttackRollPatch, PRE_ATTACK_HOOK } from "./patches/attack-roll.mjs";
 
 /** The actor sub-types this library adds to the system. */
 export const ANIMAL_TYPE = `${MODULE_ID}.animal`;
@@ -89,6 +91,12 @@ const localImpl = Object.freeze({
   actorRead,
   /** The printed "Follower Card": build context, render to HTML, the sheet, the template. */
   followerCard: { context: followerCardContext, render: renderFollowerCard, Sheet: FollowerCardSheet, TEMPLATE: FOLLOWER_CARD_TEMPLATE },
+  /**
+   * The corrected attack model (patches/attack-roll.mjs): throw as a MOVING TARGET,
+   * bonuses as an AUDITABLE term stack. `PRE_ATTACK_HOOK` fires with the mutable
+   * ctx (terms / throwTarget / targetAc) — the seam for effect replacer/dedup logic.
+   */
+  attack: { ...attackLogic, PRE_ATTACK_HOOK },
 });
 
 // Core-deferral shim (FAMILY.md §3d): if/when a surface is upstreamed into the
@@ -117,6 +125,19 @@ Hooks.once("init", () => {
   // Warm the Follower Card template so the hirelings-tab grid (rendered by
   // acks-henchmen, cross-module) has no fetch miss on first paint.
   foundry.applications.handlebars.loadTemplates([FOLLOWER_CARD_TEMPLATE]).catch(() => {});
+
+  // The attack-roll core patch (patches/attack-roll.mjs). World-scoped so the
+  // whole table rolls one model; requiresReload because the method is patched
+  // once at ready.
+  game.settings.register(MODULE_ID, "attackRollPatch", {
+    name: `${LANG_PREFIX}.settings.attackRollPatch.name`,
+    hint: `${LANG_PREFIX}.settings.attackRollPatch.hint`,
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    requiresReload: true,
+  });
 
   // Printed-character-sheet theme (styles/sheet-theme.css): the stylesheet is
   // inert until this class lands on <body>, so the setting is a pure toggle.
@@ -180,6 +201,10 @@ Hooks.once("ready", () => {
   document.body.classList.toggle("acks-lib-sheet-theme", game.settings.get(MODULE_ID, "sheetTheme"));
 
   if (game.system?.id !== "acks") return;
+
+  // Own the attack roll (throw = target, bonuses = auditable stack) unless the
+  // world opted out. At ready: the system's Actor class is final here.
+  if (game.settings.get(MODULE_ID, "attackRollPatch")) installAttackRollPatch();
   const registered = CONFIG.Actor?.sheetClasses?.monster ?? {};
   const entries = Object.values(registered);
   const MonsterSheet = entries.find((e) => e.default)?.cls ?? entries[0]?.cls ?? null;

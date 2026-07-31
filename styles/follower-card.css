@@ -390,6 +390,12 @@
   text-align: center;
 }
 
+/* Bonus half of an attack line: visually distinct from the throw TARGET. */
+.acks-lib-follower-card .fc-attack-bonus {
+  color: var(--acks-burgundy, #620730);
+  font-weight: 600;
+}
+
 /* An overridden target reads in the spot colour, so you can see the quick change. */
 .acks-lib-follower-card .fc-ac.overridden input,
 .acks-lib-follower-card .fc-ac.overridden span,

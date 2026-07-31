@@ -166,12 +166,12 @@
           </div>
         {{else}}
           <div class="fc-attack-row">
-            {{#if editable}}<a data-action="fcRollAttack" data-attack="melee" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS.Melee"}} {{melee.value}}</a>{{else}}<label>{{localize "ACKS.Melee"}} {{melee.value}}</label>{{/if}}
+            {{#if editable}}<a data-action="fcRollAttack" data-attack="melee" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS.Melee"}} {{melee.target}}+ <span class="fc-attack-bonus">{{melee.value}}</span></a>{{else}}<label>{{localize "ACKS.Melee"}} {{melee.target}}+ <span class="fc-attack-bonus">{{melee.value}}</span></label>{{/if}}
             <span>{{melee.at}}</span>
             <span>{{melee.dmg}}</span>
           </div>
           <div class="fc-attack-row">
-            {{#if editable}}<a data-action="fcRollAttack" data-attack="missile" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS.Missile"}} {{missile.value}}</a>{{else}}<label>{{localize "ACKS.Missile"}} {{missile.value}}</label>{{/if}}
+            {{#if editable}}<a data-action="fcRollAttack" data-attack="missile" class="fc-roll"><i class="fas fa-dice-d20"></i> {{localize "ACKS.Missile"}} {{missile.target}}+ <span class="fc-attack-bonus">{{missile.value}}</span></a>{{else}}<label>{{localize "ACKS.Missile"}} {{missile.target}}+ <span class="fc-attack-bonus">{{missile.value}}</span></label>{{/if}}
             <span>{{missile.at}}</span>
             <span>{{missile.dmg}}</span>
           </div>

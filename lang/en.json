@@ -108,5 +108,20 @@
   "ACKS-LIB.followerCard.addSkill": "Add a quick skill",
   "ACKS-LIB.followerCard.newAttack": "New Attack",
   "ACKS-LIB.followerCard.newSkill": "New Skill",
-  "ACKS-LIB.followerCard.targetHint": "target {n}+"
+  "ACKS-LIB.followerCard.targetHint": "target {n}+",
+  "ACKS-LIB.settings.attackRollPatch.name": "Attack roll: throw as target, bonuses as auditable stack",
+  "ACKS-LIB.settings.attackRollPatch.hint": "Own the system's attack roll so the attack throw is a visible moving target (class/level) and every bonus (ability, adjustment, weapon, situational) is a labeled roll term you can audit in the dice tooltip. Same hit outcomes as the stock roll; disable to use the system's original.",
+  "ACKS-LIB.attack.str": "Strength",
+  "ACKS-LIB.attack.dex": "Dexterity",
+  "ACKS-LIB.attack.adjustment": "Attack adjustment",
+  "ACKS-LIB.attack.weapon": "Weapon",
+  "ACKS-LIB.attack.situational": "Situational",
+  "ACKS-LIB.attack.damageAdjustment": "Damage adjustment",
+  "ACKS-LIB.attack.roll": "Roll",
+  "ACKS-LIB.attack.throwLine": "Attack throw {target}+",
+  "ACKS-LIB.attack.vsAc": " vs AC {ac} → needs {need}+",
+  "ACKS-LIB.attack.hitsAc": "hits AC {ac}",
+  "ACKS-LIB.attack.missesAc": "misses (would hit AC {ac})",
+  "ACKS-LIB.attack.fumble": "natural 1 — automatic miss",
+  "ACKS-LIB.attack.critical": "natural 20 — automatic hit"
 }
