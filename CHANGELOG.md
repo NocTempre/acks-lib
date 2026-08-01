@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.38.0
+
+- **New effect primitive: `outcome` — "on a roll of X, Y happens."** A stated
+  consequence keyed to how the throw came up: `naturalBand` (an unmodified die
+  in 1..`naturalMax` — the books' botch bands that jam a lock or trigger a
+  trap), `belowFraction` (the result under `belowFraction` × target — the
+  pickpocketing victim noticing), or `failure` (the climber falls). Per the
+  owner's ruling these are mechanics, not prose: the band edge and fraction are
+  page numbers that materialize per-seat, the `consequence` is a conclusion in
+  the chef's own words, and `outcomeFires(effect, ctx)` decides firing —
+  returning `null` (not `false`) when it cannot, so an undecidable outcome
+  surfaces instead of silently dropping. New vocab `OUTCOME_TRIGGERS`; effect
+  schema gains `trigger` / `naturalMax` / `belowFraction` / `consequence`.
+
 ## 0.37.0
 
 - **Follower Card: casters are visible.** A caster's card now carries a spells

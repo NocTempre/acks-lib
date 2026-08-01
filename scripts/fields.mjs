@@ -31,6 +31,7 @@ import {
   RESOURCE_KINDS,
   ROLL_TYPES,
   REROLL_KEEP,
+  OUTCOME_TRIGGERS,
   VALUE_SCALES,
   VALUE_ROUNDING,
 } from "./vocab.mjs";
@@ -282,6 +283,17 @@ export function effectField() {
      * `target`/`forWhat`/`condition` to say WHAT is rerolled and when. */
     keep: choice(REROLL_KEEP),
     times: num({ integer: true }),
+    /* --- outcome: "on a roll of X, Y happens" ---
+     * `trigger` picks the machine rule (see OUTCOME_TRIGGERS / outcomeFires).
+     * `naturalMax` / `belowFraction` are the page's numbers, located per-seat —
+     * an outcome without its number cannot fire and surfaces as undecidable.
+     * `consequence` is WHAT happens, a chef conclusion in own words, never the
+     * page's sentence. Variant scoping (hasty vs methodical) rides `condition`
+     * like every other effect. */
+    trigger: choice(OUTCOME_TRIGGERS),
+    naturalMax: num({ integer: true }),
+    belowFraction: num(),
+    consequence: str(),
     /* --- companion: a creature the ability confers ---
      * `ref` is the monster entry id (the recipe knows which — that pointer is
      * not the book's text and ships safely). `actorUuid` is the loaded bucket:

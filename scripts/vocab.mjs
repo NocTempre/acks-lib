@@ -222,6 +222,14 @@ export const EFFECT_TYPES = {
   progressionAs: { label: "Progresses As Class" }, // "as a thief of his level"
   proficiencyGrant: { label: "Proficiency Grant" }, // weapon/armor/fighting-style proficiency
   limitation: { label: "Limitation / Drawback" }, // a restriction or penalty — attaches to ANY ability
+  // "On a roll of X, Y happens" — a consequence keyed to how the throw itself
+  // came up: the natural die in a botch band (jams the lock, triggers the
+  // trap), the result below a fraction of the target (the victim notices), or
+  // plain failure (the climber falls). Owner ruling 2026-08-01: these are
+  // MECHANICS, not prose — an entry whose page states one is incomplete until
+  // it carries one. Numbers (band edge, fraction) are page values and locate
+  // per-seat; the consequence itself is a chef conclusion in own words.
+  outcome: { label: "Roll Outcome" },
   // --- Relational: abilities that depend on, grant, or alter OTHER abilities ---
   requires: { label: "Requires" }, // prerequisite ability/abilities
   grants: { label: "Grants" }, // confers other abilities (optionally choose N)
@@ -580,6 +588,51 @@ export function scopeApplies(effect = {}, ctx = {}) {
   }
 
   return { applies: !undetermined, sign, undetermined };
+}
+
+/**
+ * What fires a Roll Outcome — the machine-decidable part of "on a roll of X".
+ *
+ * `naturalBand`   the UNMODIFIED die in 1..naturalMax (the books' botch bands:
+ *                 "on an unmodified 1–3 the lock jams"). The band edge is the
+ *                 page's number and locates per-seat into `naturalMax`.
+ * `belowFraction` the RESULT below `belowFraction` × target (Pickpocketing's
+ *                 "below half the target value, the victim notices"). The
+ *                 fraction is the page's word ("half") and locates per-seat.
+ * `failure`       the throw simply failed (Climbing's fall). No number — the
+ *                 target itself already decides.
+ *
+ * One trigger per effect. A rule the book states as "on a natural 1 OR below
+ * half the target" is two outcome effects sharing a consequence — two distinct
+ * machine rules, one result, same as every other one-rule-per-effect case.
+ */
+export const OUTCOME_TRIGGERS = {
+  naturalBand: { label: "Natural Roll In Band" },
+  belowFraction: { label: "Result Below Fraction of Target" },
+  failure: { label: "On Failure" },
+};
+
+/**
+ * Does this outcome fire for the given roll? `null` when the effect is not an
+ * outcome, when its trigger needs a number it does not carry (an unlocated
+ * band on a bookless seat), or when the caller cannot supply what the trigger
+ * reads (no natural die available). A null is "cannot decide", never "no" —
+ * the consumer surfaces it rather than silently dropping the rule.
+ */
+export function outcomeFires(effect, { natural = null, total = null, target = null, success = null } = {}) {
+  if (effect?.type !== "outcome") return null;
+  switch (effect.trigger) {
+    case "naturalBand":
+      if (!Number.isFinite(effect.naturalMax) || !Number.isFinite(natural)) return null;
+      return natural >= 1 && natural <= effect.naturalMax;
+    case "belowFraction":
+      if (!Number.isFinite(effect.belowFraction) || !Number.isFinite(total) || !Number.isFinite(target)) return null;
+      return total < target * effect.belowFraction;
+    case "failure":
+      return typeof success === "boolean" ? !success : null;
+    default:
+      return null;
+  }
 }
 
 /** Which of a reroll's results is kept. */

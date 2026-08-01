@@ -109,6 +109,14 @@ to `{ key: label }` for DataModel `choices`.
   `PROGRESSION_LEVELS`, `SPELL_LIKE_FREQ`, `RESOURCE_KINDS`, `ROLL_TYPES`,
   `REROLL_KEEP`, `VALUE_SCALES`, `CONVERSION_STATUS`.
 - **Scoping** (v0.6): `INFLUENCE_TONES`, `SCOPE_ALIGNMENT_MODES`.
+- **Roll outcomes** (v0.38): `OUTCOME_TRIGGERS` and `outcomeFires(effect, {natural,
+  total, target, success})`. An `outcome` effect states "on a roll of X, Y
+  happens" — a botch band on the natural die (`naturalBand`/`naturalMax`), the
+  result under a fraction of the target (`belowFraction`), or plain `failure`.
+  The band edge and fraction are page numbers and locate per-seat; `consequence`
+  is a chef conclusion in own words. Owner ruling 2026-08-01: such rules are
+  mechanics, never prose. `outcomeFires` returns `null` for "cannot decide" (no
+  natural die supplied, number not located) — surface it, never treat as false.
 
 ### Scoping — when a modifier applies
 
