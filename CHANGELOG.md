@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.35.0
+
+- **A third pill state: grey for "unset".** acks-equipment answers permissively
+  when a character has no profile — `{all: true}` for weapons, `heavy` for armour
+  — so it never penalises an un-set-up actor at roll time. Lighting the strip off
+  that default claimed proficiencies nobody had granted: strip a character bare and
+  it still read as proficient in everything. A group with no explicit profile (no
+  flag, no granting effect) is now **entirely grey** — unknown, not "yes" and not
+  "no". No assumptions are made for an unset group, not even the styles every class
+  technically has; a configured group shows exactly what it was given.
+- **Fixed the dark band under the card for good.** The sheet asks to size to its
+  content, but a window the user has resized keeps that height, and bare
+  window-content showed as a band below the card. The card now stretches to fill
+  the frame whatever its size (and scrolls when it is the taller of the two) —
+  verified by force-resizing the window to 830px: 6px of padding under the card,
+  no void.
+
 ## 0.34.0
 
 - **The weapon strip lists every weapon class (plus unarmed), lit by coverage.**

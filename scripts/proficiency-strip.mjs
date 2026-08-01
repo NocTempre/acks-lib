@@ -127,12 +127,31 @@ export function profileStrips(actor) {
     return { styles: [], weapons: [], armour: [], any: false };
   }
 
+  /**
+   * "Unconfigured" is NOT "proficient in everything". acks-equipment answers
+   * permissively when a character has no profile — `{all: true}` for weapons and
+   * `heavy` for armour — so it never penalises an un-set-up actor at roll time.
+   * Lighting the whole strip off that default would state a proficiency the
+   * character has not been given. So a group with no explicit profile (no flag,
+   * no granting effect) shows only what is true for ANY body: unarmed, and
+   * unarmoured, plus the two mandatory fighting styles.
+   */
+  const flagSet = (k) => {
+    const v = actor.getFlag?.("acks-equipment", k);
+    return v != null && v !== "" && !(Array.isArray(v) && !v.length);
+  };
+  const stylesConfigured = flagSet("styles") || trained.size > 2 || spec.size > 0;
+
+  // With no profile the whole group is UNKNOWN — every pill greys out, including
+  // the styles every class technically has. An unset sheet states nothing; a set
+  // one states exactly what it was given.
   const styles = STYLES.map((s) => ({
     key: s.key,
     icon: s.icon,
     label: loc(s.label, s.fallback),
-    on: trained.has(s.key),
-    gold: spec.has(s.key),
+    on: stylesConfigured && trained.has(s.key),
+    gold: stylesConfigured && spec.has(s.key),
+    unset: !stylesConfigured,
   }));
 
   // weaponProficiency answers with `{all, tokens}` (tokens a Set) — it also
@@ -180,21 +199,34 @@ export function profileStrips(actor) {
   } catch {
     /* no unarmed-fighting data */
   }
+  // A bare `{all:true}` with no tokens and no flag is the permissive DEFAULT, not
+  // a granted unrestricted selection — that reads as unset, not as everything.
+  const weaponsConfigured = flagSet("weaponProficiency") || profTokens.size > 0;
   const weapons = WEAPON_CLASSES.map((c) => ({
     key: c.key,
     chip: c.chip,
     label: loc(c.label, c.fallback),
-    on: covered.has(c.key),
-    gold: c.key === "unarmed" ? unarmedFocus : focusCats.has(c.key),
+    on: weaponsConfigured && covered.has(c.key),
+    gold: weaponsConfigured && (c.key === "unarmed" ? unarmedFocus : focusCats.has(c.key)),
+    unset: !weaponsConfigured,
   }));
 
+  // Same story: `heavy` is acks-equipment's permissive fallback, not a grant.
+  const armourConfigured = flagSet("armorMax") || (() => {
+    try {
+      return (api.collectStringFlags?.(actor, api.EFFECT_DOMAINS?.ARMOR_PROF ?? "armorTraining") ?? []).length > 0;
+    } catch {
+      return false;
+    }
+  })();
   const maxRank = ARMOUR.findIndex((a) => a.key === norm(armourMax));
   const armour = ARMOUR.map((a, i) => ({
     key: a.key,
     icon: a.icon,
     label: loc(a.label, a.fallback),
-    on: maxRank >= 0 && i <= maxRank,
+    on: armourConfigured && maxRank >= 0 && i <= maxRank,
     gold: false,
+    unset: !armourConfigured,
   }));
   // A SHIELD is its own armour category (RR pp. 128/140-141), not a rung on the
   // suit ladder — and RAW it only benefits a class with the Weapon & Shield
@@ -203,8 +235,9 @@ export function profileStrips(actor) {
     key: "shield",
     icon: "fas fa-shield-halved",
     label: loc("ACKS-LIB.armour.shield", "Shield (+1 AC — needs the Weapon & Shield style)"),
-    on: trained.has("weaponshield"),
-    gold: spec.has("weaponshield"),
+    on: stylesConfigured && trained.has("weaponshield"),
+    gold: stylesConfigured && spec.has("weaponshield"),
+    unset: !stylesConfigured,
   });
 
   return { styles, weapons, armour, any: true };

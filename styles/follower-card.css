@@ -22,10 +22,18 @@
   border-radius: 3px;
 }
 
+/* The card FILLS its window. The sheet asks to size to content, but a window the
+   user has resized taller keeps that height — and then bare window-content shows
+   below the card as a dark band. Stretching the card removes the band whatever
+   the frame size, and it scrolls when the content is the taller of the two. */
 .acks-lib-follower-card-sheet .window-content {
   padding: 6px;
-  max-height: 88vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.acks-lib-follower-card-sheet .acks-lib-follower-card {
+  flex: 1 1 auto;
 }
 
 /* --- Name banner --- */
@@ -442,6 +450,15 @@
   color: #2b1c05;
   background: #c9a227;
   border-color: #8a6d13;
+}
+
+/* UNSET — no class profile has been configured, so this is UNKNOWN, not "no".
+   Grey keeps it visibly different from a deliberate "not proficient" (outline)
+   and from a granted one (burgundy). */
+.acks-lib-follower-card .fc-pill.unset {
+  color: #6b6b6b;
+  background: #d1d3d4;
+  border-color: #a9abac;
 }
 
 /* Weapon size, as pips (tiny 1 → large 4). */
