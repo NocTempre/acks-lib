@@ -195,6 +195,22 @@ Hooks.once("init", () => {
     onChange: (on) => document.body.classList.toggle("acks-lib-sheet-theme", on),
   });
 
+  // THE font knob. Every ACKS surface (follower card, module apps, and — with
+  // the theme on — the system sheets) derives its sizes from --acks-fs-base via
+  // the token scale, so one inline declaration on the root element resizes the
+  // family. Inline style outranks the :root rule; 14 matches the token default,
+  // so at 14 the property is REMOVED and the stylesheet value rules (a fresh
+  // client is byte-identical to no-setting). Foundry's UI scale compounds on top.
+  game.settings.register(MODULE_ID, "fontScale", {
+    name: `${LANG_PREFIX}.settings.fontScale.name`,
+    hint: `${LANG_PREFIX}.settings.fontScale.hint`,
+    scope: "client",
+    config: true,
+    type: new foundry.data.fields.NumberField({ min: 12, max: 18, step: 0.5, initial: 14, nullable: false }),
+    default: 14,
+    onChange: (px) => applyFontScale(px),
+  });
+
   console.log(`${MODULE_ID} | primitives ready (apiVersion ${api.apiVersion}).`);
 });
 
@@ -224,6 +240,21 @@ Hooks.once("setup", () => {
 });
 
 /**
+ * Drive --acks-fs-base (the family-wide type knob) from the fontScale setting.
+ * At the token default (14) the inline property is REMOVED so the stylesheet
+ * value governs. The pin lands on <html>, NOT <body>, and that is load-bearing:
+ * the --acks-fs-* scale steps are declared at :root and custom properties
+ * inherit as ALREADY-SUBSTITUTED values, so a base set on <body> would never
+ * reach steps whose substitution ran at <html> (verified live — the token
+ * file's dark block documents the same physics for the colour tokens).
+ */
+function applyFontScale(px) {
+  const n = Number(px);
+  if (!Number.isFinite(n) || n === 14) document.documentElement.style.removeProperty("--acks-fs-base");
+  else document.documentElement.style.setProperty("--acks-fs-base", `${n}px`);
+}
+
+/**
  * Give animals the SYSTEM'S OWN monster sheet.
  *
  * This library ships no sheet, and should not: an animal is a monster you can
@@ -243,6 +274,7 @@ Hooks.once("setup", () => {
 Hooks.once("ready", () => {
   // Theme class lands once settings are readable; onChange handles the rest.
   document.body.classList.toggle("acks-lib-sheet-theme", game.settings.get(MODULE_ID, "sheetTheme"));
+  applyFontScale(game.settings.get(MODULE_ID, "fontScale"));
 
   if (game.system?.id !== "acks") return;
 

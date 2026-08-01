@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.40.0
+
+- **One token publisher: the vendored design-system tokens are the family's
+  single source of `--acks-*` palette values.** Four layers declared the same
+  custom properties (the vendored tokens at `:root`, sheet-theme's ~18
+  body-scope pins, a `.acks-ui` dark-isolation shim grown to defend against
+  those pins, and the follower card's private palette grown to defend against
+  both), and the Follower Card rendered four different ways across
+  sheetTheme × seat combinations — worst pairs cream-on-white at 1.1:1 and
+  burgundy-on-dark at 1.5:1. sheet-theme.css now declares no palette: it is
+  override rules for system-rendered markup plus the two system-var remaps,
+  still gated by the `sheetTheme` client setting. The shim and the card pin
+  are deleted. Consumers read tokens BARE — a literal fallback masks a
+  missing token, which is exactly how `--acks-field` shipped undeclared
+  (white boxes under dark-seat text).
+- **Dark seats: derived tokens re-declared where the theme class lands.**
+  Custom properties inherit already-substituted, so any token containing
+  `var()` (borders, rule colour, focus ring, the banner) froze its LIGHT
+  substitution at `<html>` while Foundry applies `.theme-dark` to `<body>` —
+  verified live, where `--acks-border` computed to light burgundy on a dark
+  seat. The dark block now re-declares every derived token verbatim, with the
+  physics documented so nobody deduplicates them back out.
+- Promoted tokens: `--acks-field` (the boxed write-in well the card read for
+  months with no declaration anywhere), `--acks-banner` (porphyry band as a
+  drop-in `background:` value), `--acks-gold/-ink/-deep` (gilt accent,
+  ex-hardcoded). Contrast audit extended to 17 pairs — all AA in both themes.
+- **One font knob: new client setting `fontScale` (12–18 px, default 14).**
+  Every ACKS surface derives from the `--acks-fs-*` scale: the follower card
+  drops its hardcoded 12px/11px (grid cards no longer run the smallest text
+  in the client), module apps size from `--acks-fs-body`, and with the theme
+  on the system sheets follow too. The pin lands on the ROOT element — where
+  the scale steps substitute — and is removed at the default, so an untouched
+  client renders byte-identical to 0.39.0.
+- Follower card: every remaining hex routed through tokens; heading face is
+  the token `--acks-font-banner` chain (Cinzel ships in the vendored fonts and
+  always resolves).
+
 ## 0.39.0
 
 - **New primitive: `storage` — goods that belong to a character but are not on

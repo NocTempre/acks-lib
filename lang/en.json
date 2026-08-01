@@ -2,6 +2,8 @@
   "ACKS-LIB.Title": "ACKS II — Library",
   "ACKS-LIB.settings.sheetTheme.name": "Character-sheet theme",
   "ACKS-LIB.settings.sheetTheme.hint": "Style the ACKS windows like the printed ACKS II character sheet: burgundy banners with small-caps lettering, gray sheet, white boxed fields. Per player.",
+  "ACKS-LIB.settings.fontScale.name": "ACKS font size",
+  "ACKS-LIB.settings.fontScale.hint": "Base size (px) for every ACKS surface — follower cards, module apps, and (with the theme on) the system sheets. One knob for the whole family; Foundry's own UI scale applies on top. Per player.",
   "TYPES.Actor.acks-lib.animal": "Animal",
   "ACKS-LIB.animal.training.untrained": "Untrained",
   "ACKS-LIB.animal.training.riding": "Riding",

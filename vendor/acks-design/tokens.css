@@ -91,6 +91,11 @@
   --acks-tint-2: #e6d9da;         /* ~12% burgundy: nested surfaces, hover   */
   --acks-neutral: #e6e7e8;        /* neutral grey panel (character sheet)    */
   --acks-neutral-2: #d1d3d4;      /* grey lettering on burgundy bands        */
+  /* Boxed write-in field on the sheet panel: the pure-white well ruled in ink.
+   * PROMOTED 2026-08-01 from acks-lib's sheet-theme layer, which was its only
+   * declarer — the follower card read the name everywhere and a literal
+   * fallback masked the missing definition (white boxes on a dark seat). */
+  --acks-field: #ffffff;
 
   /* -- Reversed text: what sits on a burgundy band. Fixed in both themes,
    *    because the band is dark in both. ---------------------------------- */
@@ -115,6 +120,14 @@
   --acks-success: #2f6b46;        /* derived (not in books)                  */
   --acks-success-ink: #245536;
   --acks-success-tint: #e8f0e9;
+
+  /* -- Gilt accent: specialization / focus emphasis that must NOT read as
+   *    alarm. Module-invented (follower-card build strips, henchmen search
+   *    stars); promoted 2026-08-01 from hardcoded hexes there. Fixed in both
+   *    themes like the banner lettering — 6.4:1 on dark paper. ---------- */
+  --acks-gold: #c9a227;           /* fill / icon accent                      */
+  --acks-gold-ink: #2b1c05;       /* text ON a gold fill                     */
+  --acks-gold-deep: #8a6d13;      /* gold keyline / border                   */
 
   /* ==========================================================================
    * 2. TYPE
@@ -255,6 +268,20 @@
   --acks-tx-parchment-opacity: 0.42;
   --acks-tx-parchment-scale: 220px;
 
+  /* The porphyry BAND as a drop-in `background:` value — surface burgundy under
+   * the measured tonal stops, gradient only (the turbulence overlay stays in
+   * textures.css for roots a module owns). PROMOTED 2026-08-01 from acks-lib's
+   * sheet-theme. Re-declared in the dark block below — see the note there on
+   * derived tokens before assuming that repeat is redundant. */
+  --acks-banner: var(--acks-burgundy) linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--acks-burgundy-deep) 60%, transparent) 0%,
+    transparent 26%,
+    color-mix(in srgb, var(--acks-burgundy-lit) 20%, transparent) 52%,
+    transparent 74%,
+    color-mix(in srgb, var(--acks-burgundy-deep) 55%, transparent) 100%
+  );
+
   /* ==========================================================================
    * 7. LAYOUT
    * ====================================================================== */
@@ -299,6 +326,8 @@
   --acks-tint-2: #3a262c;
   --acks-neutral: #2a2124;
   --acks-neutral-2: #6c5c60;
+  --acks-field: #1b1416;          /* boxed field: a recessed well, one step
+                                   * darker than the dark panel it sits on   */
 
   /* On a dark ground the fill/ink relationship inverts: the brighter tone is
    * now the readable one, so -ink points at the *lighter* value. */
@@ -314,6 +343,38 @@
 
   /* Paper fibre reads heavier on a dark ground, so ease the texture off. */
   --acks-tx-parchment-opacity: 0.3;
+
+  /* -- DERIVED tokens, RE-DECLARED VERBATIM. Not redundant — do not remove.
+   * Custom properties inherit as ALREADY-SUBSTITUTED values: a :root token
+   * containing var() bakes the LIGHT palette in at <html>, and Foundry puts
+   * this dark class on <body> — one element too late. (The preview harness
+   * toggles <html>, which is why its audit alone cannot catch this; verified
+   * live in Foundry v14, where --acks-border computed to the light burgundy
+   * on a dark seat.) Repeating the declarations here re-runs substitution on
+   * the element where the dark values are in scope. Everything above this
+   * comment is a literal and inherits fine; everything below contains var().
+   * The same physics limits [data-acks-density]: it only rescales --acks-fs-*
+   * if set on the element declaring them (<html>) — a caveat, not a bug,
+   * while nothing ships density. ---------------------------------------- */
+  --acks-rule-color: var(--acks-spot);
+  --acks-rule-color-soft: color-mix(in srgb, var(--acks-spot) 35%, transparent);
+  --acks-border-hair: var(--acks-rule-hair) solid var(--acks-rule-color);
+  --acks-border: var(--acks-rule) solid var(--acks-rule-color);
+  --acks-border-soft: var(--acks-rule-hair) solid var(--acks-rule-color-soft);
+  --acks-border-ink: var(--acks-rule-hair) solid var(--acks-ink);
+  --acks-shape-fill: var(--acks-ink);
+  --acks-shape-stroke: var(--acks-ink);
+  --acks-shape-keyline: var(--acks-paper-pure);
+  --acks-focus-color: var(--acks-spot);
+  --acks-focus-ring: 0 0 0 2px var(--acks-paper), 0 0 0 4px var(--acks-focus-color);
+  --acks-banner: var(--acks-burgundy) linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--acks-burgundy-deep) 60%, transparent) 0%,
+    transparent 26%,
+    color-mix(in srgb, var(--acks-burgundy-lit) 20%, transparent) 52%,
+    transparent 74%,
+    color-mix(in srgb, var(--acks-burgundy-deep) 55%, transparent) 100%
+  );
 }
 
 /* Density: Foundry sheets are cramped. `data-acks-density="compact"` shrinks

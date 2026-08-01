@@ -115,32 +115,8 @@
   color: var(--acks-on-burgundy);
 }
 
-/* ============================================================================
- * DARK-SEAT ISOLATION from acks-lib's whole-client sheet-theme layer.
- *
- * sheet-theme.css (the opt-in body.acks-lib-sheet-theme layer that themes the
- * SYSTEM's own sheets) pins --acks-ink / --acks-neutral at body-class specificity
- * and, by design, does NOT flip them on a dark seat — it keeps Foundry's own dark
- * surfaces there. That `body.acks-lib-sheet-theme` selector (0,1,1) out-specifies
- * this design system's `.theme-dark` token override (0,1,0), so inside a `.acks-ui`
- * component root the text kept the LIGHT-seat ink (#231f20) over the dark paper
- * ground — dark-on-dark, illegible.
- *
- * Re-assert the design system's dark palette on `.acks-ui` itself, under a
- * selector (0,2,1) that outranks the body class. This defends only the component
- * layer's own scope; the system sheets and the follower card (which are NOT
- * `.acks-ui`) keep sheet-theme's values untouched.
- * ========================================================================== */
-body.theme-dark .acks-ui {
-  --acks-ink: #ede6df;
-  --acks-ink-soft: #b3a79d;
-  --acks-ink-faint: #8b7f76;
-  --acks-neutral: #2a2124;
-  --acks-neutral-2: #6c5c60;
-  --acks-paper: #1b1416;
-  --acks-paper-warm: #241a1d;
-  --acks-paper-deep: #120c0e;
-  --acks-paper-pure: #241a1d;
-  --acks-tint: #2c1e22;
-  --acks-tint-2: #3a262c;
-}
+/* The dark-seat isolation block that used to sit here is gone (2026-08-01):
+ * it re-declared the dark palette on `.acks-ui` to out-specify sheet-theme's
+ * body-scope token pins. Those pins no longer exist — tokens.css is the single
+ * publisher (`:root` + `.theme-dark`), so there is nothing to defend against.
+ * See acks-lib docs/MODEL.md § "One token publisher". */

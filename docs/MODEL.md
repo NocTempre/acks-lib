@@ -50,3 +50,22 @@ builders that consumer modules assemble into their own models.
   cross product would be hundreds of near-duplicate actors; the template +
   builder honors the book procedure instead, and a dropped base actor makes
   the same document a modifier (vampire thrall).
+- **One token publisher** (2026-08-01): the vendored design-system token file
+  (`vendor/acks-design/tokens.css`, `:root` + one `.theme-dark` block) is the
+  ONLY place `--acks-*` palette values are declared, and it loads
+  unconditionally — inert values style nothing by themselves, and every
+  dependent module `requires` acks-lib, so consumers read tokens BARE
+  (`var(--acks-spot)`, no literal fallback; a fallback masks a missing token,
+  which is exactly how `--acks-field` shipped undeclared and rendered white
+  boxes on dark seats). Before this, sheet-theme.css pinned ~18 token copies at
+  body-class specificity, out-specifying the token file's dark block; the
+  vendor layer and the follower card each grew counter-shims, and one card
+  rendered FOUR ways across sheet-theme x seat combinations (worst pair
+  1.1:1). sheet-theme.css now owns only override RULES for system-rendered
+  markup, gated by `body.acks-lib-sheet-theme`; the setting stays the
+  whole-client escape hatch. Corollaries: SURFACE vs INK discipline everywhere
+  (`background:` takes `--acks-burgundy`, `color:`/`border:` take
+  `--acks-spot` — they diverge on dark seats); type sizes come off the
+  `--acks-fs-*` scale so the `fontScale` client setting (writes
+  `--acks-fs-base` inline on the root element, where the scale steps
+  substitute) resizes every ACKS surface with one knob.
