@@ -472,6 +472,46 @@
   opacity: 0.75;
 }
 
+/* --- Per-attack quick edit (name / throw / bonus / damage / dmg bonus) --- */
+.acks-lib-follower-card .fc-attack-edit {
+  color: var(--acks-burgundy, #620730);
+  cursor: pointer;
+  font-size: 0.8em;
+  padding-left: 2px;
+}
+.acks-lib-follower-card .fc-attack-editor {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 4px;
+  padding: 3px 5px 4px;
+  background: rgb(from var(--acks-burgundy, #620730) r g b / 0.06);
+  border-top: 1px dotted rgb(from var(--acks-ink, #231f20) r g b / 0.3);
+}
+.acks-lib-follower-card .fc-attack-wrap.editing .fc-attack-editor {
+  display: grid;
+}
+.acks-lib-follower-card .fc-attack-editor label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7em;
+}
+.acks-lib-follower-card .fc-attack-editor input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--acks-field, #fff);
+  border: 1px solid var(--acks-ink, #231f20);
+  border-radius: 2px;
+  padding: 0 3px;
+  color: var(--acks-ink, #231f20);
+}
+/* An edited attack reads in the spot colour, like the other overrides. */
+.acks-lib-follower-card .fc-attack-wrap.overridden .fc-attack-row > a,
+.acks-lib-follower-card .fc-attack-wrap.overridden .fc-attack-row > label {
+  color: var(--acks-burgundy, #620730);
+  font-weight: 600;
+}
+
 /* Bonus half of an attack line: visually distinct from the throw TARGET. */
 .acks-lib-follower-card .fc-attack-bonus {
   color: var(--acks-burgundy, #620730);

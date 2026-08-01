@@ -39,6 +39,7 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
       fcCommit: FollowerCardSheet.#onCommit,
       fcAddAttack: FollowerCardSheet.#onAddAttack,
       fcAddSkill: FollowerCardSheet.#onAddSkill,
+      fcToggleAttackEdit: FollowerCardSheet.#onToggleAttackEdit,
     },
   };
 
@@ -61,6 +62,9 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
     this.element?.querySelector("input[data-fc-ac]")?.addEventListener("change", (ev) => this.#onAcInput(ev));
     for (const inp of this.element?.querySelectorAll("input[data-fc-adv]") ?? []) {
       inp.addEventListener("change", (ev) => this.#onAdvInput(ev));
+    }
+    for (const inp of this.element?.querySelectorAll("input[data-fc-atk]") ?? []) {
+      inp.addEventListener("change", (ev) => this.#onAttackInput(ev));
     }
 
     // Re-fit the window to the card. `position.height: "auto"` only applies to the
@@ -122,6 +126,23 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
     if (key && Number.isFinite(v)) await this.#setOverride({ adventuring: { [key]: v } });
   }
 
+  /** Per-attack quick edit: name / throw / bonus / damage / damage bonus. */
+  async #onAttackInput(ev) {
+    ev.stopPropagation();
+    const field = ev.target.dataset.fcAtk;
+    const key = ev.target.closest("[data-attack-key]")?.dataset.attackKey;
+    if (!field || !key) return;
+    const raw = ev.target.value;
+    const value = field === "label" || field === "damage" ? String(raw) : Math.round(Number(raw));
+    if (typeof value === "number" && !Number.isFinite(value)) return;
+    await this.#setOverride({ attacks: { [key]: { [field]: value } } });
+  }
+
+  /** Reveal/hide one attack's edit line (view state only — nothing is stored). */
+  static #onToggleAttackEdit(_event, target) {
+    target.closest(".fc-attack-wrap")?.classList.toggle("editing");
+  }
+
   /** Reset: drop all card-only overrides, back to the sheet's own values. */
   static async #onResetSheet() {
     await this.actor.unsetFlag(MODULE_ID, "fcOverrides");
@@ -142,6 +163,23 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
     }
     for (const [k, v] of Object.entries(ov.adventuring ?? {})) upd[`system.adventuring.${k}`] = num(v);
     if (Object.keys(upd).length) await this.actor.update(upd);
+
+    // Attack edits bake onto the WEAPON they came from (name / damage die / the
+    // weapon's own bonus). A row with no item — unarmed, improvised — has nothing
+    // to write to, so its override simply stays an override.
+    const itemUpdates = [];
+    for (const [key, o] of Object.entries(ov.attacks ?? {})) {
+      const itemId = String(key).split(":")[0];
+      const item = this.actor.items.get(itemId);
+      if (!item) continue;
+      const u = { _id: item.id };
+      if (o.label) u.name = o.label;
+      if (o.damage != null) u["system.damage"] = o.damage;
+      if (o.bonus != null) u["system.bonus"] = num(o.bonus);
+      if (Object.keys(u).length > 1) itemUpdates.push(u);
+    }
+    if (itemUpdates.length) await this.actor.updateEmbeddedDocuments("Item", itemUpdates);
+
     await this.actor.unsetFlag(MODULE_ID, "fcOverrides");
   }
 
@@ -173,24 +211,37 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
   static #onRollAttack(event, target) {
     const type = target.dataset.attack || "melee";
     const itemId = target.dataset.itemId;
+    const key = target.closest("[data-attack-key]")?.dataset.attackKey;
     let skip = false;
     try {
       skip = !!event?.[game.settings.get("acks", "skip-dialog-key")];
     } catch {
       /* setting absent — show the dialog */
     }
+    const ov = key ? ((this.actor.getFlag(MODULE_ID, "fcOverrides") ?? {}).attacks ?? {})[key] : null;
     const item = itemId ? this.actor.items.get(itemId) : null;
-    if (item) {
-      // Route through the item so acks-equipment's per-weapon RAW modifiers apply;
-      // pass the resolved type so a thrown melee weapon rolls the row you clicked.
-      this.actor.targetAttack?.(
-        { actor: this.actor, item: item.toObject(), roll: { save: item.system?.save, target: null } },
-        type,
-        { type, skipDialog: skip },
-      );
-      return;
+
+    // Build the throwaway item object core's roll reads (name / damage / bonus),
+    // patched with any per-attack override — a row with no item still gets one so
+    // an ad-hoc attack can carry its own name and damage die.
+    let payload = item ? item.toObject() : null;
+    if (ov || !item) {
+      const base = payload ?? { name: target.textContent.trim(), system: { damage: "", bonus: 0 } };
+      payload = foundry.utils.deepClone(base);
+      payload.system ??= {};
+      if (ov?.label) payload.name = ov.label;
+      if (ov?.damage != null) payload.system.damage = ov.damage;
+      if (ov?.damageBonus != null) payload.system.damageBonus = num(ov.damageBonus);
+      if (!payload.system.damage) delete payload.system.damage;
     }
-    this.actor.targetAttack?.({ actor: this.actor, roll: {} }, type, { type, skipDialog: skip });
+    const attData = { actor: this.actor, roll: { save: item?.system?.save, target: null } };
+    if (payload?.system?.damage || item) attData.item = payload;
+    // On attData, not options: core's targetAttack rebuilds options as
+    // {type, skipDialog} and would drop it.
+    if (ov && (ov.target != null || ov.bonus != null)) {
+      attData.acksLibOverride = { target: ov.target, bonus: ov.bonus };
+    }
+    this.actor.targetAttack?.(attData, type, { type, skipDialog: skip });
   }
 
   /** Roll an adventuring throw, honouring a card-only override target if set. */

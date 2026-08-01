@@ -72,6 +72,21 @@ function buildContext(actor, attData, options) {
     targetName: target?.name ?? null,
     options,
   };
+
+  // A caller-supplied override (the Follower Card's per-attack quick edits): it
+  // MOVES the target and/or REPLACES the bonus stack, keeping the two kinds of
+  // number distinct rather than folding one into the other.
+  //
+  // Read from attData FIRST: core's `targetAttack` rebuilds the options object as
+  // `{type, skipDialog}` before calling rollAttack, so anything passed in options
+  // is dropped on that path — attData is forwarded intact.
+  const ov = attData?.acksLibOverride ?? options.acksLibOverride;
+  if (ov) {
+    if (Number.isFinite(Number(ov.target))) ctx.throwTarget = Number(ov.target);
+    if (Number.isFinite(Number(ov.bonus))) {
+      ctx.terms = [{ key: "override", value: Number(ov.bonus), label: L("override", "Override") }];
+    }
+  }
   // The replacer/dedup seam: mutate ctx.terms, move ctx.throwTarget.
   Hooks.callAll(PRE_ATTACK_HOOK, actor, ctx);
   return ctx;

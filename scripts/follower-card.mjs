@@ -195,15 +195,31 @@ export function followerCardContext(actor, { editable = false } = {}) {
       },
     ];
   } else {
+    const atkOv = overrides.attacks ?? {};
     ctx.attacks = attackOptionsFor(actor).map((o) => {
       const item = o.itemId ? actor.items.get(o.itemId) : null;
+      const ov = atkOv[o.key] ?? {};
+      const baseBonus = bonusFor(o.type);
+      const baseDmgMod = dmgModFor(o.type === "missile" ? "missile" : "melee");
+      const dmgDie = ov.damage ?? o.damage;
+      const dmgBonus = ov.damageBonus != null ? num(ov.damageBonus) : baseDmgMod;
       return {
         ...o,
+        label: ov.label || o.label,
         damageTypeLabel: damageTypeLabel(o.damageType),
         size: item ? sizePips(item) : { count: 0, label: "", pips: [] },
-        target: throwTarget,
-        bonus: signed(bonusFor(o.type)),
-        dmg: o.damage ? withMod(o.damage, dmgModFor(o.type === "missile" ? "missile" : "melee")) : "",
+        target: ov.target != null ? num(ov.target) : throwTarget,
+        bonus: signed(ov.bonus != null ? num(ov.bonus) : baseBonus),
+        dmg: dmgDie ? withMod(dmgDie, dmgBonus) : "",
+        // raw values for the edit row + the roll
+        edit: {
+          label: ov.label ?? o.label,
+          target: ov.target != null ? num(ov.target) : throwTarget,
+          bonus: ov.bonus != null ? num(ov.bonus) : baseBonus,
+          damage: dmgDie ?? "",
+          damageBonus: dmgBonus,
+        },
+        overridden: Object.keys(ov).length > 0,
       };
     });
   }
@@ -223,7 +239,8 @@ export function followerCardContext(actor, { editable = false } = {}) {
         }));
 
   ctx.strips = profileStrips(actor);
-  ctx.hasOverrides = overrides.ac != null || Object.keys(advOv).length > 0;
+  ctx.hasOverrides =
+    overrides.ac != null || Object.keys(advOv).length > 0 || Object.keys(overrides.attacks ?? {}).length > 0;
   return ctx;
 }
 

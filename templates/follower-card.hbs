@@ -159,6 +159,7 @@
       <div class="fc-attacks">
         <div class="fc-attacks-head"><span></span><span>{{localize "ACKS-LIB.followerCard.at"}}</span><span>{{localize "ACKS-LIB.followerCard.dmg"}}</span></div>
         {{#each attacks}}
+          <div class="fc-attack-wrap{{#if this.overridden}} overridden{{/if}}" data-attack-key="{{this.key}}">
           <div class="fc-attack-row">
             {{#if @root.editable}}
               <a data-action="fcRollAttack" data-attack="{{this.type}}" data-item-id="{{this.itemId}}" class="fc-roll"
@@ -170,6 +171,17 @@
             {{/if}}
             <span>{{this.at}}</span>
             <span>{{this.dmg}}</span>
+            {{#if @root.editable}}<a data-action="fcToggleAttackEdit" class="fc-attack-edit" data-tooltip="{{localize 'ACKS-LIB.followerCard.editAttack'}}"><i class="fas fa-pen"></i></a>{{/if}}
+          </div>
+          {{#if @root.editable}}
+          <div class="fc-attack-editor">
+            <label>{{localize "ACKS-LIB.followerCard.atkName"}}<input type="text" data-fc-atk="label" value="{{this.edit.label}}" /></label>
+            <label>{{localize "ACKS-LIB.followerCard.atkThrow"}}<input type="number" data-fc-atk="target" value="{{this.edit.target}}" /></label>
+            <label>{{localize "ACKS-LIB.followerCard.atkBonus"}}<input type="number" data-fc-atk="bonus" value="{{this.edit.bonus}}" /></label>
+            <label>{{localize "ACKS-LIB.followerCard.atkDamage"}}<input type="text" data-fc-atk="damage" value="{{this.edit.damage}}" /></label>
+            <label>{{localize "ACKS-LIB.followerCard.atkDmgBonus"}}<input type="number" data-fc-atk="damageBonus" value="{{this.edit.damageBonus}}" /></label>
+          </div>
+          {{/if}}
           </div>
         {{/each}}
       </div>

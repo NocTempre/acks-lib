@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.36.0
+
+- **Attacks are editable, under the override rules.** A pencil on each attack row
+  opens a quick-edit line for **name, throw, bonus, damage and damage bonus**. The
+  edits are sticky card-only overrides (the actor is untouched), they drive the
+  actual roll — the throw MOVES the target and the bonus REPLACES the stack, so
+  the chat card reads "Attack throw 7+ … 17 + 4 (Override) = 21 → hits AC 14" —
+  and **Commit** bakes name / damage / bonus onto the weapon the row came from.
+  A row with no item (unarmed, improvised, an ad-hoc attack) can carry its own
+  name and damage die and simply stays an override.
+- **The strips now read imported proficiency items.** acks-abilities stores a
+  proficiency's picks as free vocabulary and asks consumers to normalise and match
+  against their own — acks-lib now does exactly that (through `getExtras().category`
+  and `selectionsOf()`, never by parsing item names), so an imported
+  "Weapons" proficiency selecting *Swords* lights the swords & daggers class and
+  nothing else. Fighting-style and armour proficiencies map the same way, the
+  item's own name is the fallback pick, and the strips now work with
+  acks-abilities alone — no acks-equipment profile required.
+- **Fixed:** acks-equipment's permissive `{all: true}` default is no longer
+  consulted when there is no equipment profile, so a specific imported grant can
+  never read as "proficient in everything".
+
 ## 0.35.0
 
 - **A third pill state: grey for "unset".** acks-equipment answers permissively

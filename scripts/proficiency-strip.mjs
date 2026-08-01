@@ -107,25 +107,127 @@ export const isProfileAbility = (item) =>
   item?.type === "ability" && /^(fightingstyle|armou?rproficiency|weaponproficiency|weaponfocus)/.test(norm(item.name));
 
 /**
+ * Synonyms for the free-text picks on an imported proficiency. acks-abilities
+ * stores `selections` as free vocabulary BY DESIGN (the meaningful token set is
+ * per-ability and lives in the book) and tells consumers to normalise and match
+ * against their own vocabulary — this is acks-lib's side of that contract, so an
+ * imported "Weapons" proficiency selecting "Swords" lights the swords & daggers
+ * class without anyone hand-editing an enum.
+ */
+const WEAPON_SYNONYMS = {
+  sworddagger: ["sword", "swords", "dagger", "daggers", "swordsdaggers", "sworddagger", "swordsanddaggers"],
+  axe: ["axe", "axes"],
+  bow: ["bow", "bows", "longbow", "shortbow", "compositebow", "bowscrossbows"],
+  crossbow: ["crossbow", "crossbows", "arbalest"],
+  flailhammermace: ["mace", "maces", "flail", "flails", "hammer", "hammers", "macesflailshammers", "flailhammermace", "flailshammersmaces"],
+  spearpolearm: ["spear", "spears", "polearm", "polearms", "spearspolearms", "spearsandpolearms"],
+  other: ["other", "sling", "slings", "thrown", "slingsthrown", "staff", "staffs", "staves", "net", "nets", "whip", "whips", "bola", "bolas"],
+  unarmed: ["unarmed", "unarmedfighting", "brawling", "fist", "fists"],
+};
+const STYLE_SYNONYMS = {
+  single: ["single", "singleweapon"],
+  dual: ["dual", "dualweapon", "dualwielding", "twoweapons", "twoweapon"],
+  twohanded: ["twohanded", "twohandedweapon"],
+  weaponshield: ["weaponshield", "weaponandshield", "shield", "shieldandweapon"],
+  missile: ["missile", "missileweapon", "ranged"],
+};
+const ARMOUR_SYNONYMS = {
+  unarmored: ["unarmored", "unarmoured", "none", "no"],
+  verylight: ["verylight", "verylightarmor", "verylightarmour"],
+  light: ["light", "lightarmor", "lightarmour", "leather"],
+  medium: ["medium", "mediumarmor", "mediumarmour", "chain"],
+  heavy: ["heavy", "heavyarmor", "heavyarmour", "plate"],
+};
+const matchSynonym = (token, table) => {
+  const t = norm(token);
+  if (!t) return null;
+  for (const [key, list] of Object.entries(table)) {
+    if (key === t || list.includes(t)) return key;
+    // "swords & daggers" folds to swordsdaggers; also accept a contained word.
+    if (list.some((s) => t === s || t.startsWith(s) || s.startsWith(t))) return key;
+  }
+  return null;
+};
+
+/**
+ * What the character's IMPORTED proficiency items grant. Read through
+ * acks-abilities' own API (`getExtras().category` + `selectionsOf`) — never by
+ * parsing item names, which that module explicitly owns.
+ */
+function abilityGrants(actor) {
+  const out = { styles: new Set(), spec: new Set(), weapons: new Set(), armourRank: -1, has: { styles: false, weapons: false, armour: false } };
+  const api = globalThis.acksAbilities ?? game.modules?.get("acks-abilities")?.api ?? null;
+  if (!api?.selectionsOf) return out;
+  for (const item of actor?.items ?? []) {
+    if (item.type !== "ability") continue;
+    let category = "";
+    try {
+      category = api.getExtras?.(item)?.category ?? "";
+    } catch {
+      continue;
+    }
+    const picks = (() => {
+      try {
+        return api.selectionsOf(item) ?? [];
+      } catch {
+        return [];
+      }
+    })();
+    // A category with no explicit pick still declares the DOMAIN; the item's own
+    // name is the fallback pick ("Fighting Style: Dual Weapon" → dual).
+    const tokens = picks.length ? picks : [String(item.name ?? "").split(":").pop()];
+    if (category === "fightingStyle") {
+      out.has.styles = true;
+      for (const t of tokens) {
+        const k = matchSynonym(t, STYLE_SYNONYMS);
+        if (k) out.styles.add(k);
+      }
+    } else if (category === "weaponProficiency") {
+      out.has.weapons = true;
+      for (const t of tokens) {
+        const k = matchSynonym(t, WEAPON_SYNONYMS);
+        if (k) out.weapons.add(k);
+      }
+    } else if (category === "armorProficiency") {
+      out.has.armour = true;
+      for (const t of tokens) {
+        const k = matchSynonym(t, ARMOUR_SYNONYMS);
+        const i = ARMOUR.findIndex((a) => a.key === k);
+        if (i > out.armourRank) out.armourRank = i;
+      }
+    }
+  }
+  return out;
+}
+
+/**
  * Build the three strips for an actor.
  * @returns {{styles: object[], weapons: object[], armour: object[], any: boolean}}
  */
 export function profileStrips(actor) {
+  if (actor?.type !== "character") return { styles: [], weapons: [], armour: [], any: false };
   const api = equipmentApi();
-  if (!api || actor?.type !== "character") return { styles: [], weapons: [], armour: [], any: false };
+  // The character's own imported proficiency items are a first-class source, so
+  // the strips work with acks-abilities alone (no acks-equipment profile needed).
+  const grants = abilityGrants(actor);
+  const anyGrant = grants.has.styles || grants.has.weapons || grants.has.armour;
+  if (!api && !anyGrant) return { styles: [], weapons: [], armour: [], any: false };
 
   let trained = new Set();
   let spec = new Set();
   let weaponProf = null;
   let armourMax = null;
-  try {
-    trained = new Set([...(api.trainedStyles?.(actor) ?? [])].map(norm));
-    spec = new Set([...(api.specializedStyles?.(actor) ?? [])].map(norm));
-    weaponProf = api.weaponProficiency?.(actor) ?? null;
-    armourMax = api.armorMax?.(actor) ?? null;
-  } catch {
-    return { styles: [], weapons: [], armour: [], any: false };
+  if (api) {
+    try {
+      trained = new Set([...(api.trainedStyles?.(actor) ?? [])].map(norm));
+      spec = new Set([...(api.specializedStyles?.(actor) ?? [])].map(norm));
+      weaponProf = api.weaponProficiency?.(actor) ?? null;
+      armourMax = api.armorMax?.(actor) ?? null;
+    } catch {
+      /* equipment profile unreadable — the ability grants below still stand */
+    }
   }
+  for (const s of grants.styles) trained.add(s);
 
   /**
    * "Unconfigured" is NOT "proficient in everything". acks-equipment answers
@@ -140,7 +242,7 @@ export function profileStrips(actor) {
     const v = actor.getFlag?.("acks-equipment", k);
     return v != null && v !== "" && !(Array.isArray(v) && !v.length);
   };
-  const stylesConfigured = flagSet("styles") || trained.size > 2 || spec.size > 0;
+  const stylesConfigured = grants.has.styles || flagSet("styles") || trained.size > 2 || spec.size > 0;
 
   // With no profile the whole group is UNKNOWN — every pill greys out, including
   // the styles every class technically has. An unset sheet states nothing; a set
@@ -192,16 +294,20 @@ export function profileStrips(actor) {
   }
 
   // Every weapon class shows; the class-build selection lights the ones it covers.
-  const covered = coveredClasses(allWeapons, profTokens, api);
+  // A bare `{all:true}` with no tokens and no flag is acks-equipment's permissive
+  // DEFAULT, not a granted unrestricted selection — so it is only consulted when
+  // an equipment profile actually exists. Otherwise the imported proficiency
+  // items are the whole story, and "Weapons (Swords)" must not read as "all".
+  const equipmentWeapons = flagSet("weaponProficiency") || profTokens.size > 0;
+  const covered = equipmentWeapons ? coveredClasses(allWeapons, profTokens, api) : new Set();
+  for (const w of grants.weapons) covered.add(w);
   let unarmedFocus = false;
   try {
-    unarmedFocus = !!api.hasEffectFlag?.(actor, api.EFFECT_DOMAINS?.UNARMED ?? "unarmedFighting");
+    unarmedFocus = !!api?.hasEffectFlag?.(actor, api.EFFECT_DOMAINS?.UNARMED ?? "unarmedFighting");
   } catch {
     /* no unarmed-fighting data */
   }
-  // A bare `{all:true}` with no tokens and no flag is the permissive DEFAULT, not
-  // a granted unrestricted selection — that reads as unset, not as everything.
-  const weaponsConfigured = flagSet("weaponProficiency") || profTokens.size > 0;
+  const weaponsConfigured = grants.has.weapons || equipmentWeapons;
   const weapons = WEAPON_CLASSES.map((c) => ({
     key: c.key,
     chip: c.chip,
@@ -212,14 +318,20 @@ export function profileStrips(actor) {
   }));
 
   // Same story: `heavy` is acks-equipment's permissive fallback, not a grant.
-  const armourConfigured = flagSet("armorMax") || (() => {
-    try {
-      return (api.collectStringFlags?.(actor, api.EFFECT_DOMAINS?.ARMOR_PROF ?? "armorTraining") ?? []).length > 0;
-    } catch {
-      return false;
-    }
-  })();
-  const maxRank = ARMOUR.findIndex((a) => a.key === norm(armourMax));
+  const equipmentArmour =
+    flagSet("armorMax") ||
+    (() => {
+      try {
+        return (api?.collectStringFlags?.(actor, api.EFFECT_DOMAINS?.ARMOR_PROF ?? "armorTraining") ?? []).length > 0;
+      } catch {
+        return false;
+      }
+    })();
+  const armourConfigured = grants.has.armour || equipmentArmour;
+  const maxRank = Math.max(
+    equipmentArmour ? ARMOUR.findIndex((a) => a.key === norm(armourMax)) : -1,
+    grants.armourRank,
+  );
   const armour = ARMOUR.map((a, i) => ({
     key: a.key,
     icon: a.icon,
