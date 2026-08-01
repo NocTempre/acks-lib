@@ -373,6 +373,61 @@ keep working when the system adds a physical type this library never heard of.
 `physicalFields()` / `equippableFields()` build a module sub-type's own schema
 to match the system exactly rather than approximately.
 
+### `storage` — goods kept somewhere other than on you (v0.39, apiVersion 11)
+
+The system has no inventory anywhere except an actor's own item list, and no way
+to move an item between actors at all: its drop handlers **copy** — they create
+on the target and never delete from the source. Markets, banks, base camps and
+"leave it at the inn" all need that same missing primitive, so it lives here.
+
+```js
+const { isProvider, setProvider, findVaultOf, storedItems, storesByOwner,
+        providersFor, storedCoinGC, stash, retrieve, moveStored,
+        depositCoin, consolidateMoney, returnGoodsTo, STORAGE_HOOKS } = acksLib.storage;
+```
+
+**The model.** Stored goods are REAL EMBEDDED ITEMS on a provider actor, stamped
+`flags.acks-lib.storage = {ownerUuid, ownerName}`. That is what makes the rest
+work: the goods stop weighing on the character because they are genuinely not on
+the character, and every sheet, macro and rule that reads an actor's items reads
+a location's stock unchanged — nothing has to stay in sync with a parallel record
+of what is really where.
+
+A **provider** is any actor carrying `flags.acks-lib.storage.provider`; a
+personal vault also carries `vaultOf: <owner uuid>`. This library deliberately
+does not know what a "location" is — acks-location's settlement, acks-henchmen's
+market actor and the carts a later pass turns into base camps are all just actors
+with the flag, so `setProvider(actor)` is the whole of "this can hold goods now".
+
+**Transfers** plan everything before writing, then create on the target *before*
+deleting from the source: a half-finished move duplicates goods rather than
+destroying them, and the source half failing triggers a compensating delete (with
+a loud error if even that fails). Arrivals are normalised — nothing arrives
+equipped, the retired `quantitybank` never travels, and acks-equipment's
+`containedIn` pointers are remapped when a container travels with its contents
+and stripped when it does not. Coin merges by denomination, and by owner at a
+provider; the system's own merge matches on document ID, which only works for
+coin sharing an id lineage, so without this a retrieved 20 gp becomes a second
+"Gold" row. `spec` is `[{id, quantity?}]` — omit `quantity` for the whole stack.
+
+**When the place is destroyed**, `registerStorageCleanup()` (installed at init)
+applies the world setting **`storageDeletePolicy`**: `return` (default) hands
+each owner their goods back inside a container named after the place, `lose`
+drops them. Exactly one client executes — elected via `game.users.activeGM`,
+unlike the idempotent mount cleanup — because this one creates documents. The
+manifest is whispered to chat *before* anything moves, so a failure still leaves
+a record. Hooks: `acksLibStorageStashed`, `…Retrieved`, `…Moved`, `…Returned`,
+`…Lost`, `…ProviderChanged`.
+
+**Attribution is a UI convention, not a security boundary.** `ownerUuid` lets
+sheets group and gate rows; a player with ownership of a shared location can
+still reach every item on it from the console — the same ruling acks-equipment
+makes for containers. Anything that must genuinely stay secret belongs on a
+GM-owned actor.
+
+`providersFor(actor)` scans the world's actors once; call it per render and share
+the result rather than per row.
+
 ### `acks-lib.template` — the generator actor (v0.16)
 
 The MM's "characteristics by rank/age/tier" creatures (dragon, cacodemon,

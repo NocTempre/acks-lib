@@ -8,6 +8,16 @@ import * as vocab from "../scripts/vocab.mjs";
 import { cleanDelta, isDerivedEffect, memberName, migrateGroupSource, nextOrdinal, platoonCapacity, sizeFromEcology } from "../scripts/group-logic.mjs";
 import { chooseAxes, mergePatch, resolveActor, rollDie, rollMenu, rollOption, seededRng } from "../scripts/template-logic.mjs";
 import { attackTerms, termTotal, resolveAttack, legacyCoreResolves } from "../scripts/attack-logic.mjs";
+import {
+  buildTransferPayload,
+  coinTotalGC,
+  emptyMoneyDeletes,
+  expandContainerClosure,
+  groupByOwner,
+  planMoneyMerge,
+  quantityOf,
+  splitSpec,
+} from "../scripts/storage-logic.mjs";
 
 const { resolveLevelValue: R, choicesOf } = vocab;
 let n = 0;
@@ -589,6 +599,129 @@ t("resolveAttack: full parity with core's folded resolution (both rules)", () =>
     }
   }
   assert.ok(checked > 12000, `swept ${checked} cases`);
+});
+
+/* -------------------------------------------- */
+/*  storage-logic: transfers between actors      */
+/* -------------------------------------------- */
+
+// The system stores stack size three different ways; these fixtures carry all of them.
+const gold = (id, qty, bank = 0) => ({ _id: id, name: "Gold", type: "money", system: { coppervalue: 100, quantity: qty, quantitybank: bank, totalvalue: 999 } });
+const silver = (id, qty) => ({ _id: id, name: "Silver", type: "money", system: { coppervalue: 10, quantity: qty, quantitybank: 0 } });
+const gear = (id, name, qty) => ({ _id: id, name, type: "item", system: { cost: 1, weight6: 1, quantity: { value: qty, max: 0 } } });
+const sword = (id) => ({ _id: id, name: "Sword", type: "weapon", system: { cost: 10, weight6: 6, equipped: true } });
+const inside = (item, containerId) => ({ ...item, flags: { "acks-equipment": { containedIn: containerId } } });
+const ids = () => {
+  let i = 0;
+  return () => `new${++i}`;
+};
+
+t("quantityOf reads the shape, not the type name", () => {
+  assert.deepEqual(quantityOf(gold("g", 5)), { value: 5, path: "system.quantity" });
+  assert.deepEqual(quantityOf(gear("i", "Torch", 3)), { value: 3, path: "system.quantity.value" });
+  assert.equal(quantityOf(sword("w")), null); // unstackable — always whole
+});
+
+t("splitSpec: clamps, defaults to everything, flags whole moves", () => {
+  assert.deepEqual(splitSpec(gear("i", "Torch", 10), 4), { move: 4, remain: 6, whole: false, path: "system.quantity.value" });
+  assert.equal(splitSpec(gear("i", "Torch", 10), 99).move, 10); // clamped, not refused
+  assert.equal(splitSpec(gear("i", "Torch", 10)).whole, true); // null = all of it
+  assert.deepEqual(splitSpec(sword("w"), 3), { move: 1, remain: 0, whole: true, path: null });
+  assert.equal(splitSpec(gold("g", 0)).move, 0); // empty stack moves nothing
+});
+
+t("expandContainerClosure: contents follow, transitively, cycles terminate", () => {
+  const items = [gear("pack", "Backpack", 1), inside(gear("box", "Box", 1), "pack"), inside(gear("gem", "Gem", 1), "box"), gear("loose", "Rope", 1)];
+  assert.deepEqual([...expandContainerClosure(items, ["pack"])].sort(), ["box", "gem", "pack"]);
+  assert.deepEqual([...expandContainerClosure(items, ["loose"])], ["loose"]);
+  const cycle = [inside(gear("a", "A", 1), "b"), inside(gear("b", "B", 1), "a")];
+  assert.deepEqual([...expandContainerClosure(cycle, ["a"])].sort(), ["a", "b"]);
+});
+
+t("buildTransferPayload: whole move deletes the source, split updates it", () => {
+  const items = [gear("torch", "Torch", 10), sword("sw")];
+  const p = buildTransferPayload(items, [{ id: "torch", quantity: 4 }, { id: "sw" }], { newId: ids() });
+  assert.equal(p.creates.length, 2);
+  assert.deepEqual(p.sourceUpdates, [{ _id: "torch", "system.quantity.value": 6 }]);
+  assert.deepEqual(p.sourceDeletes, ["sw"]);
+  assert.equal(p.creates.find((c) => c.name === "Torch").system.quantity.value, 4);
+});
+
+t("buildTransferPayload: arrivals are normalised (unequipped, bank zeroed)", () => {
+  const p = buildTransferPayload([sword("sw"), gold("g", 5, 120)], [{ id: "sw" }, { id: "g" }], { newId: ids() });
+  assert.equal(p.creates.find((c) => c.type === "weapon").system.equipped, false);
+  const coin = p.creates.find((c) => c.type === "money");
+  assert.equal(coin.system.quantitybank, 0); // the retired bank field never travels
+  assert.equal(coin.system.totalvalue, 0); // recomputed by the sheet, never carried
+});
+
+t("buildTransferPayload: containedIn is remapped when the container comes too, stripped when it does not", () => {
+  const items = [gear("pack", "Backpack", 1), inside(gear("gem", "Gem", 1), "pack")];
+  const together = buildTransferPayload(items, [{ id: "pack" }], { newId: ids() });
+  const packId = together.idMap.get("pack");
+  assert.equal(together.creates.find((c) => c.name === "Gem").flags["acks-equipment"].containedIn, packId);
+  const alone = buildTransferPayload(items, [{ id: "gem" }], { newId: ids() });
+  assert.equal(alone.creates[0].flags["acks-equipment"].containedIn, undefined); // would dangle
+});
+
+t("buildTransferPayload: attribution is stamped, preserved, or stripped", () => {
+  const stashed = buildTransferPayload([sword("sw")], [{ id: "sw" }], { stampOwner: true, ownerUuid: "Actor.hero", ownerName: "Hero", newId: ids() });
+  assert.deepEqual(stashed.creates[0].flags["acks-lib"].storage, { ownerUuid: "Actor.hero", ownerName: "Hero" });
+
+  const owned = { ...sword("sw"), flags: { "acks-lib": { storage: { ownerUuid: "Actor.hero", ownerName: "Hero" } } } };
+  const consolidated = buildTransferPayload([owned], [{ id: "sw" }], { stampOwner: true, preserveOwner: true, ownerUuid: null, ownerName: "", newId: ids() });
+  assert.equal(consolidated.creates[0].flags["acks-lib"].storage.ownerUuid, "Actor.hero"); // merging vaults must not launder ownership
+
+  const back = buildTransferPayload([owned], [{ id: "sw" }], { stampOwner: false, newId: ids() });
+  assert.equal(back.creates[0].flags["acks-lib"].storage, undefined); // you own what you carry
+});
+
+t("buildTransferPayload: unknown ids and zero requests move nothing", () => {
+  assert.equal(buildTransferPayload([sword("sw")], [{ id: "nope" }], { newId: ids() }).creates.length, 0);
+  assert.equal(buildTransferPayload([gear("t", "Torch", 5)], [{ id: "t", quantity: 0 }], { newId: ids() }).creates.length, 0);
+});
+
+t("planMoneyMerge: folds into an existing row rather than adding a second Gold", () => {
+  const { creates, targetUpdates } = planMoneyMerge([gold("new", 20)], [gold("have", 50)]);
+  assert.equal(creates.length, 0);
+  assert.deepEqual(targetUpdates, [{ _id: "have", "system.quantity": 70 }]);
+});
+
+t("planMoneyMerge: at a provider the key carries the owner, so two people's gold stays two rows", () => {
+  const stamp = (m, uuid) => ({ ...m, flags: { "acks-lib": { storage: { ownerUuid: uuid, ownerName: uuid } } } });
+  const target = [stamp(gold("theirs", 10), "Actor.ally")];
+  const byOwner = planMoneyMerge([stamp(gold("mine", 5), "Actor.hero")], target, { byOwner: true });
+  assert.equal(byOwner.creates.length, 1); // a new row for the hero
+  assert.equal(byOwner.targetUpdates.length, 0);
+  const pooled = planMoneyMerge([stamp(gold("mine", 5), "Actor.ally")], target, { byOwner: true });
+  assert.deepEqual(pooled.targetUpdates, [{ _id: "theirs", "system.quantity": 15 }]);
+});
+
+t("planMoneyMerge: two arriving stacks of one denomination land as one row", () => {
+  const { creates } = planMoneyMerge([gold("a", 5), gold("b", 7), silver("c", 3)], []);
+  assert.equal(creates.length, 2);
+  assert.equal(creates.find((c) => c.name === "Gold").system.quantity, 12);
+});
+
+t("emptyMoneyDeletes: a coin row emptied by the move is deleted, unless coin remains in the bank", () => {
+  const items = [gold("g", 50), gold("b", 50, 20)];
+  const emptied = emptyMoneyDeletes([{ _id: "g", "system.quantity": 0 }], items);
+  assert.deepEqual(emptied, { sourceUpdates: [], sourceDeletes: ["g"] });
+  const banked = emptyMoneyDeletes([{ _id: "b", "system.quantity": 0 }], items);
+  assert.deepEqual(banked.sourceDeletes, []); // left for the vault sweep to find
+});
+
+t("coinTotalGC counts the way the system does (100cp = 1gp)", () => {
+  assert.equal(coinTotalGC([gold("g", 12), silver("s", 30)]), 15);
+  assert.equal(coinTotalGC([sword("w")]), 0);
+});
+
+t("groupByOwner buckets stored goods, unattributed included", () => {
+  const stamp = (m, uuid, name) => ({ ...m, flags: { "acks-lib": { storage: { ownerUuid: uuid, ownerName: name } } } });
+  const buckets = groupByOwner([stamp(gold("a", 1), "Actor.hero", "Hero"), stamp(sword("b"), "Actor.hero", "Hero"), silver("orphan", 1)]);
+  assert.equal(buckets.get("Actor.hero").items.length, 2);
+  assert.equal(buckets.get("Actor.hero").ownerName, "Hero");
+  assert.equal(buckets.get("").items.length, 1); // never silently dropped
 });
 
 console.log(`\n${n} tests passed`);

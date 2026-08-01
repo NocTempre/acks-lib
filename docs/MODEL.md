@@ -30,6 +30,20 @@ builders that consumer modules assemble into their own models.
   acks-content cookbook compiler/executor share one definition; `fields.mjs`
   (Foundry field-builders) is lazy so the module still evaluates under Node.
 
+- **Storage lands in the library, keyed on a flag rather than a type**
+  (2026-08-01): "goods kept somewhere other than on you" is the primitive under
+  markets, banks, base camps and wagons, and the standing promotion rule names
+  stash handling as shared machinery. Two consequences were chosen deliberately.
+  (1) **Stored goods are real embedded items on the holding actor**, not a
+  ledger: an item that has left the character genuinely weighs nothing on them,
+  and every existing reader of `actor.items` sees a location's stock without
+  being taught anything. (2) **A provider is any actor with
+  `flags.acks-lib.storage.provider`** — the library never names a location type,
+  so acks-location's settlement, acks-henchmen's market actor and a future cart
+  are the same machinery, and enabling storage on one is a flag write. The UI,
+  the actor type and the lifecycle around it belong to acks-location; only the
+  primitives are here. Attribution (`ownerUuid`) is a UI convention, not a
+  security boundary — the same ruling acks-equipment makes for containers.
 - **The template actor is a generator, never a bulk import** (2026-07-24):
   the book statting a creature as tables (dragon: 11 ages x 9 types x 4 body
   forms) is the book saying "make one when you need one". Materializing the

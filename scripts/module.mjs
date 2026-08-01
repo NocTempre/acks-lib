@@ -31,6 +31,7 @@ import * as tables from "./tables.mjs";
 import * as services from "./services.mjs";
 import * as itemModel from "./item-model.mjs";
 import * as mount from "./mount.mjs";
+import * as storage from "./storage.mjs";
 import * as actorRead from "./actor-read.mjs";
 import { loadRuledata } from "./ruledata.mjs";
 import { resolveLevelValue } from "./vocab.mjs";
@@ -43,6 +44,7 @@ import * as templateLogic from "./template-logic.mjs";
 import { GroupSheet } from "./apps/group-sheet.mjs";
 import { TemplateSheet } from "./apps/template-sheet.mjs";
 import { registerMountCleanup } from "./mount.mjs";
+import { registerStorageCleanup, DELETE_POLICY_SETTING } from "./storage.mjs";
 import { FollowerCardSheet } from "./apps/follower-card-sheet.mjs";
 import { followerCardContext, renderFollowerCard, FOLLOWER_CARD_TEMPLATE } from "./follower-card.mjs";
 import * as attackLogic from "./attack-logic.mjs";
@@ -65,7 +67,7 @@ const FOLLOWER_SHEET_KEY = `${MODULE_ID}.FollowerCardSheet`;
 
 /** The library's own implementation of its API surface. */
 const localImpl = Object.freeze({
-  apiVersion: 10,
+  apiVersion: 11,
   vocab,
   fields,
   resolveLevelValue,
@@ -87,6 +89,13 @@ const localImpl = Object.freeze({
   templateLogic,
   /** Mount binding: mountOf / riderOf / isMounted / mountActor / dismount / unseat. */
   mount,
+  /**
+   * Storage at a place (storage.mjs): goods that belong to a character but are
+   * not on them. Any actor flagged a PROVIDER holds real embedded items stamped
+   * with whose they are — settlements today, base camps and wagons later.
+   * stash / retrieve / moveStored, plus the deletion fallback.
+   */
+  storage,
   /** Shared item baseline: isPhysical / isEquippable / weight6Of / … */
   itemModel,
   /** System actor reads: abilityMod / classLevel / monsterHd / hitDiceOrLevel. */
@@ -138,6 +147,7 @@ Hooks.once("init", () => {
   if (mod) mod.api = api;
 
   registerMountCleanup();
+  registerStorageCleanup();
 
   // Warm the Follower Card template so the hirelings-tab grid (rendered by
   // acks-henchmen, cross-module) has no fetch miss on first paint.
@@ -154,6 +164,23 @@ Hooks.once("init", () => {
     type: Boolean,
     default: true,
     requiresReload: true,
+  });
+
+  // What happens to goods stored at a place when that place is deleted. A
+  // FALLBACK, not a rule: returning them keeps a GM tidying the actor directory
+  // from wiping the party's belongings, but a campaign where a sacked city
+  // really does take your warehouse with it sets "lose".
+  game.settings.register(MODULE_ID, DELETE_POLICY_SETTING, {
+    name: `${LANG_PREFIX}.settings.storageDeletePolicy.name`,
+    hint: `${LANG_PREFIX}.settings.storageDeletePolicy.hint`,
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      return: `${LANG_PREFIX}.settings.storageDeletePolicy.return`,
+      lose: `${LANG_PREFIX}.settings.storageDeletePolicy.lose`,
+    },
+    default: "return",
   });
 
   // Printed-character-sheet theme (styles/sheet-theme.css): the stylesheet is

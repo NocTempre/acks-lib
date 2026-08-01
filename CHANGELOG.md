@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.39.0
+
+- **New primitive: `storage` — goods that belong to a character but are not on
+  them (apiVersion 11).** The system has no inventory anywhere except an actor's
+  own item list and no way to move an item between actors at all (its drop
+  handlers COPY — they create on the target and never delete from the source).
+  Markets, banks, base camps and "leave it at the inn" all need the same missing
+  piece, so it lands here once. Stored goods are REAL EMBEDDED ITEMS on a
+  PROVIDER actor stamped `flags.acks-lib.storage = {ownerUuid, ownerName}`: they
+  stop weighing on the character because they are not on the character, and every
+  sheet or macro that reads an actor's items reads a location's stock unchanged.
+  A provider is any actor carrying `flags.acks-lib.storage.provider` — the
+  library deliberately does not know what a "location" is, so settlements today
+  and carts and wagons later are the same machinery.
+  - `stash` / `retrieve` / `moveStored` plan the whole move before writing, then
+    create on the target BEFORE deleting from the source, so a half-finished
+    transfer duplicates goods rather than destroying them (and compensates by
+    deleting what it just created, saying so loudly if even that fails).
+    Arrivals are normalised — nothing arrives equipped, the retired
+    `quantitybank` never travels, and acks-equipment's `containedIn` pointers
+    are remapped when a container moves with its contents and stripped when it
+    does not. Partial stacks split; weapons and armour move whole.
+  - Coin merges by denomination (and by owner at a provider). The system's own
+    drop-merge matches on document ID, which only works for coin that shares an
+    id lineage — anything that has been through a transfer has a fresh id, so
+    without this a retrieved 20 gp becomes a second "Gold" row.
+  - `registerStorageCleanup()` handles the place being deleted, governed by the
+    new world setting **storageDeletePolicy**: `return` (default) hands each
+    owner their goods back in a container named after the place; `lose` is for
+    campaigns where a sacked city really does take your warehouse with it.
+    Exactly one client executes (elected via `game.users.activeGM`) because this
+    one CREATES documents, and the manifest is posted to chat before anything
+    moves so a failure still leaves a record.
+  - Attribution is a UI convention, not a security boundary — the same ruling
+    acks-equipment makes for containers.
+
 ## 0.38.0
 
 - **New effect primitive: `outcome` — "on a roll of X, Y happens."** A stated
