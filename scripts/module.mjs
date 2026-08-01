@@ -91,8 +91,17 @@ const localImpl = Object.freeze({
   itemModel,
   /** System actor reads: abilityMod / classLevel / monsterHd / hitDiceOrLevel. */
   actorRead,
-  /** The printed "Follower Card": build context, render to HTML, the sheet, the template. */
-  followerCard: { context: followerCardContext, render: renderFollowerCard, Sheet: FollowerCardSheet, TEMPLATE: FOLLOWER_CARD_TEMPLATE },
+  /** The printed "Follower Card": build context, render to HTML, the sheet, the
+   *  template, and setSheet(actor, useCard) — the one sanctioned card↔full
+   *  switch (consumed by acks-henchmen's roster bulk buttons). */
+  followerCard: {
+    context: followerCardContext,
+    render: renderFollowerCard,
+    Sheet: FollowerCardSheet,
+    TEMPLATE: FOLLOWER_CARD_TEMPLATE,
+    setSheet: setFollowerSheet,
+    SHEET_KEY: FOLLOWER_SHEET_KEY,
+  },
   /**
    * The corrected attack model (patches/attack-roll.mjs): throw as a MOVING TARGET,
    * bonuses as an AUDITABLE term stack. `PRE_ATTACK_HOOK` fires with the mutable
@@ -293,4 +302,59 @@ Hooks.on("updateActor", (actor, changes, options, userId) => {
   if (foundry.utils.getProperty(changes, "system.retainer.enabled") !== true) return;
   if (actor.getFlag("core", "sheetClass")) return;
   actor.update({ "flags.core.sheetClass": FOLLOWER_SHEET_KEY });
+});
+
+/**
+ * Switch one actor between the Follower Card and its full system sheet.
+ *
+ * The per-instance choice is `flags.core.sheetClass` — the same flag core's
+ * own Sheet Configuration dialog writes, so the two surfaces can never
+ * disagree. "Full sheet" DELETES the flag rather than writing the system
+ * sheet's id: absence means "the type's default", which keeps following the
+ * default if it ever changes. An open sheet is closed, the resolver cache
+ * dropped (ClientDocument#sheet memoizes), and re-opened as the new face.
+ *
+ * @param {Actor} actor
+ * @param {boolean} useCard
+ * @returns {Promise<boolean>} whether anything changed
+ */
+export async function setFollowerSheet(actor, useCard) {
+  if (!actor || !FOLLOWER_TYPES.has(actor.type) || !actor.isOwner) return false;
+  const isCard = actor.getFlag("core", "sheetClass") === FOLLOWER_SHEET_KEY;
+  if (isCard === !!useCard) return false;
+  const wasOpen = actor.sheet?.rendered ?? false;
+  if (wasOpen) await actor.sheet.close();
+  actor._sheet = null;
+  if (useCard) await actor.setFlag("core", "sheetClass", FOLLOWER_SHEET_KEY);
+  else await actor.update({ "flags.core.-=sheetClass": null });
+  actor._sheet = null;
+  if (wasOpen) actor.sheet?.render(true);
+  return true;
+}
+
+/* Right-click a directory entry to flip its face — the discoverable version
+ * of core's buried Sheet Configuration dialog, for exactly one decision. */
+Hooks.on("getActorContextOptions", (application, options) => {
+  if (game.system?.id !== "acks") return;
+  const actorFor = (li) => game.actors.get(li?.dataset?.entryId);
+  options.push(
+    {
+      name: "ACKS-LIB.sheet.useCard",
+      icon: '<i class="fa-solid fa-address-card"></i>',
+      condition: (li) => {
+        const actor = actorFor(li);
+        return !!actor && actor.isOwner && FOLLOWER_TYPES.has(actor.type) && actor.getFlag("core", "sheetClass") !== FOLLOWER_SHEET_KEY;
+      },
+      callback: (li) => setFollowerSheet(actorFor(li), true),
+    },
+    {
+      name: "ACKS-LIB.sheet.useFull",
+      icon: '<i class="fa-solid fa-file-lines"></i>',
+      condition: (li) => {
+        const actor = actorFor(li);
+        return !!actor && actor.isOwner && actor.getFlag("core", "sheetClass") === FOLLOWER_SHEET_KEY;
+      },
+      callback: (li) => setFollowerSheet(actorFor(li), false),
+    },
+  );
 });

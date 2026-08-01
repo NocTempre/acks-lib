@@ -29,10 +29,23 @@ monster** hirelings alike with no dependency on acks-henchmen:
 - `ready` GM sweep — existing retainers with no explicit sheet choice adopt the card.
 
 It only ever **sets** the flag when unset — a hand-picked sheet is never clobbered, and
-dismissing a hireling does not revert it (switch back by hand if wanted). PCs and wild
-monsters (`retainer.enabled = false`) are untouched. An **Expand / details** button in
-the card's header opens the full system sheet for anything the card omits (items,
-spells, effects, deep monster stats).
+dismissing a hireling does not revert it. PCs and wild monsters
+(`retainer.enabled = false`) are untouched.
+
+**Getting out of the card** (everything the card omits — items, effects, deep
+monster stats — lives on the full sheet):
+
+- the **Expand / details** header button and a labelled **Full sheet** footer
+  link on the card sheet open the full sheet for the session;
+- **right-click the actor in the directory** → *Use full sheet* / *Use
+  Follower Card sheet* switches the persistent default (the same
+  `flags.core.sheetClass` core's Sheet Configuration writes);
+- acks-henchmen's Roster app has **Cards for all / Full sheets for all** bulk
+  buttons, built on `acksLib.followerCard.setSheet(actor, useCard)`.
+
+**Casters** get a slots strip on the card (per-level used/max, read from
+`system.spells`) with the Full sheet link beside it — the spell page itself
+(memorize, cast, reset) deliberately stays core's.
 
 ## API — `acksLib.followerCard`
 

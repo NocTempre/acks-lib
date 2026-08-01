@@ -40,8 +40,13 @@ export class FollowerCardSheet extends foundry.applications.api.HandlebarsApplic
       fcAddAttack: FollowerCardSheet.#onAddAttack,
       fcAddSkill: FollowerCardSheet.#onAddSkill,
       fcToggleAttackEdit: FollowerCardSheet.#onToggleAttackEdit,
+      fcOpenFull: FollowerCardSheet.#onOpenFull,
     },
   };
+
+  static #onOpenFull() {
+    this.#openFull();
+  }
 
   static PARTS = {
     card: { template: FOLLOWER_CARD_TEMPLATE, scrollable: [".acks-lib-follower-card"] },

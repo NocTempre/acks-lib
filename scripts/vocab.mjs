@@ -151,6 +151,44 @@ export const ABILITY_CATEGORIES = {
   fightingStyle: { label: "Fighting Style" },
 };
 
+/**
+ * The canonical picks a proficiency of each category can select — the checkbox
+ * vocabulary for an ability's `selections`.
+ *
+ * `selections` stays free text in the model on purpose (the meaningful token set
+ * is per-ability and lives in the book), so this is the SHARED SHORTLIST for the
+ * three categories where the family does have a fixed vocabulary: the class-build
+ * selections (JJ pp. 290-291). A pick outside it is still valid — it just goes in
+ * the free-text field instead of a box. Keys match what the profile strips match
+ * on, so ticking a box is guaranteed to light the matching pill.
+ */
+export const SELECTION_VOCAB = {
+  weaponProficiency: {
+    unarmed: { label: "Unarmed" },
+    axe: { label: "Axes" },
+    sworddagger: { label: "Swords & Daggers" },
+    flailhammermace: { label: "Flails, Hammers & Maces" },
+    spearpolearm: { label: "Spears & Polearms" },
+    bow: { label: "Bows" },
+    crossbow: { label: "Crossbows" },
+    other: { label: "Other (slings, staffs, nets, whips)" },
+  },
+  fightingStyle: {
+    single: { label: "Single Weapon" },
+    dual: { label: "Dual Weapon" },
+    twohanded: { label: "Two-Handed Weapon" },
+    weaponshield: { label: "Weapon & Shield" },
+    missile: { label: "Missile" },
+  },
+  armorProficiency: {
+    unarmored: { label: "Unarmoured" },
+    verylight: { label: "Very Light" },
+    light: { label: "Light" },
+    medium: { label: "Medium" },
+    heavy: { label: "Heavy" },
+  },
+};
+
 /** Domains a `proficiencyGrant` effect covers (RR Combat: Combat Proficiencies). */
 export const PROFICIENCY_DOMAINS = {
   weapon: { label: "Weapon" },

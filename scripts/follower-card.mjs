@@ -107,9 +107,21 @@ export function followerCardContext(actor, { editable = false } = {}) {
       };
     });
 
+  // Caster strip: the card deliberately omits the spell PAGE (memorized lists,
+  // reset buttons — that is the full sheet's job), but a caster whose card
+  // shows nothing at all reads as "the module lost my spells". One line of
+  // per-level slots says otherwise, and links out for the rest. Slot shape per
+  // the released system: system.spells.enabled + spells[level] = {value: used,
+  // max} under numeric keys — read defensively, core owns that model.
+  const spellLevels = Object.entries(sys.spells ?? {})
+    .filter(([key, slot]) => /^\d+$/.test(key) && slot && (num(slot.max) > 0 || num(slot.value) > 0))
+    .map(([key, slot]) => ({ lvl: key, used: num(slot.value), max: num(slot.max) }));
+  const caster = sys.spells?.enabled ? { slots: spellLevels, empty: !spellLevels.length } : null;
+
   const ctx = {
     editable,
     isMonster,
+    caster,
     id: actor?.id,
     name: actor?.name ?? "",
     img: actor?.img,

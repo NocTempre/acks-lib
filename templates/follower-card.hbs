@@ -201,6 +201,19 @@
 
   </div>
 
+  {{!-- Caster line: per-level slots at a glance; the spell PAGE stays on the
+        full sheet, one action away. --}}
+  {{#if caster}}
+  <footer class="fc-build fc-caster">
+    <span class="fc-build-group" data-tooltip="{{localize 'ACKS-LIB.followerCard.slotsUsed'}}">
+      <span class="fc-build-label">{{localize "ACKS-LIB.followerCard.spells"}}</span>
+      {{#each caster.slots}}<span class="fc-pill chip on">L{{this.lvl}}&nbsp;{{this.used}}/{{this.max}}</span>{{/each}}
+      {{#if caster.empty}}<span class="fc-build-label">{{localize "ACKS-LIB.followerCard.casterNoSlots"}}</span>{{/if}}
+      {{#if editable}}<a data-action="fcOpenFull" data-tooltip="{{localize 'ACKS-LIB.followerCard.expand'}}"><i class="fas fa-up-right-from-square"></i> {{localize "ACKS-LIB.followerCard.fullSheet"}}</a>{{/if}}
+    </span>
+  </footer>
+  {{/if}}
+
   {{!-- Class-build selections (JJ p.290-291), across the bottom: every slot is
         shown, a trained one lights, specialization/focus reads gold. --}}
   {{#if strips.any}}
@@ -224,6 +237,13 @@
     <footer class="fc-actions">
       <a data-action="hirelingShow" data-tooltip="{{localize 'ACKS-LIB.followerCard.open'}}"><i class="fas fa-up-right-from-square"></i></a>
       <a data-action="hirelingDelete" data-tooltip="{{localize 'ACKS.Delete'}}"><i class="fas fa-trash"></i></a>
+    </footer>
+  {{else}}
+    {{!-- On the card SHEET: a labelled way out to everything the card omits
+          (spell page, effects, deep items) — the header icon alone was
+          undiscoverable, which read as "the caster page is gone". --}}
+    <footer class="fc-actions">
+      <a data-action="fcOpenFull" data-tooltip="{{localize 'ACKS-LIB.followerCard.expand'}}"><i class="fas fa-up-right-from-square"></i> {{localize "ACKS-LIB.followerCard.fullSheet"}}</a>
     </footer>
   {{/unless}}
 </div>
