@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.37.0
+
+- **Follower Card: casters are visible.** A caster's card now carries a spells
+  strip (per-level slots used/max, read defensively from `system.spells`) and a
+  labelled **Full sheet** footer action beside the header Expand icon — the
+  spell page itself (memorize/cast/reset) deliberately stays core's.
+- **One sanctioned card↔full switch.** `acksLib.followerCard.setSheet(actor,
+  useCard)` writes/deletes the same `flags.core.sheetClass` core's Sheet
+  Configuration uses (closing and reopening an open sheet), and the actor
+  directory grows right-click entries *Use Follower Card sheet* / *Use full
+  sheet*. acks-henchmen's roster bulk buttons build on it.
+- **SELECTION_VOCAB** — the shared shortlist behind acks-abilities 0.10.0's
+  selections checkboxes (weapon-proficiency groups, fighting styles, armour),
+  landing the lib half of that feature.
+
 ## 0.36.1
 
 - **Fixed: an attack row wrapped to three lines and pushed its edit pencil onto a
