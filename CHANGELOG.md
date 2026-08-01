@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.36.1
+
+- **Fixed: an attack row wrapped to three lines and pushed its edit pencil onto a
+  line of its own.** The row grid had three columns for four cells, and the whole
+  label was free to wrap. It is now a four-column row (label / #AT / DMG / edit)
+  in which only the weapon NAME gives way — it ellipsizes, with the full name in
+  the tooltip, so the throw, bonus and size pips never disappear. A row is 21px
+  at any card width.
+
 ## 0.36.0
 
 - **Attacks are editable, under the override rules.** A pencil on each attack row

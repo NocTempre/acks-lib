@@ -248,10 +248,12 @@
   border-radius: 2px;
   background: var(--acks-field, #ffffff);
 }
+/* Four columns: label · #AT · DMG · edit. The pencil is a real column — as an
+   unplaced 4th child it wrapped onto a line of its own under every attack. */
 .acks-lib-follower-card .fc-attacks-head,
 .acks-lib-follower-card .fc-attack-row {
   display: grid;
-  grid-template-columns: 1fr 2em 3.4em;
+  grid-template-columns: 1fr 2em 3.4em 1.2em;
   gap: 3px;
   align-items: center;
   padding: 1px 4px;
@@ -266,6 +268,28 @@
   color: var(--acks-ink, #231f20);
   font-variant: normal;
   font-family: inherit;
+}
+
+/* Keep an attack to ONE line at any card width: only the weapon NAME gives way
+   (ellipsis, full text in the tooltip) — the throw, bonus and size pips are the
+   numbers you came for and always stay visible. */
+.acks-lib-follower-card .fc-attack-row > a,
+.acks-lib-follower-card .fc-attack-row > label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.acks-lib-follower-card .fc-attack-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.acks-lib-follower-card .fc-attack-throw,
+.acks-lib-follower-card .fc-attack-bonus,
+.acks-lib-follower-card .fc-size {
+  flex: 0 0 auto;
 }
 .acks-lib-follower-card .fc-attack-row span {
   text-align: center;

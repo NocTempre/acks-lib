@@ -164,7 +164,7 @@
             {{#if @root.editable}}
               <a data-action="fcRollAttack" data-attack="{{this.type}}" data-item-id="{{this.itemId}}" class="fc-roll"
                  data-tooltip="{{this.label}}{{#if this.damageTypeLabel}} — {{this.damageTypeLabel}}{{/if}}">
-                <i class="{{this.icon}}"></i> {{this.label}} {{this.target}}+ <span class="fc-attack-bonus">{{this.bonus}}</span>{{#if this.size.count}} <span class="fc-size" data-tooltip="{{this.size.label}}">{{#each this.size.pips}}<i class="fas fa-circle"></i>{{/each}}</span>{{/if}}
+                <i class="{{this.icon}}"></i> <span class="fc-attack-name">{{this.label}}</span> <span class="fc-attack-throw">{{this.target}}+</span> <span class="fc-attack-bonus">{{this.bonus}}</span>{{#if this.size.count}} <span class="fc-size" data-tooltip="{{this.size.label}}">{{#each this.size.pips}}<i class="fas fa-circle"></i>{{/each}}</span>{{/if}}
               </a>
             {{else}}
               <label data-tooltip="{{this.damageTypeLabel}}"><i class="{{this.icon}}"></i> {{this.label}} {{this.target}}+ <span class="fc-attack-bonus">{{this.bonus}}</span></label>
