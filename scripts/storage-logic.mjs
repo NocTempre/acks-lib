@@ -214,60 +214,103 @@ export function buildTransferPayload(plainItems, spec, opts = {}) {
 /*  Coin                                         */
 /* -------------------------------------------- */
 
-/** The merge identity of a coin row: denomination, and whose it is at a provider. */
-function moneyKey(plain, byOwner) {
-  const owner = byOwner ? (storageFlagOf(plain)?.ownerUuid ?? "") : "";
-  return `${owner}|${num(plain?.system?.coppervalue, 1)}`;
+/** JSON with sorted keys, so two equal objects always stringify identically. */
+function canon(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
+  if (Array.isArray(value)) return `[${value.map(canon).join(",")}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${canon(value[k])}`)
+    .join(",")}}`;
 }
 
 /**
- * Fold arriving coin into rows that already exist, instead of adding a second
- * "Gold" line. The system's own drop handler merges on document ID, which only
- * works for coins that share an id lineage — anything that has been through a
- * transfer has a fresh id, so the merge has to be by denomination here.
+ * The merge identity of a stack — what makes two rows "the same thing", so
+ * splitting a stack and putting it back gives you one row rather than two.
+ * Returns null for anything that must keep its own row.
  *
- * At a provider the key also carries the owner, so two characters' gold stays
- * two rows; on a character it is denomination alone.
+ * Coin is keyed on DENOMINATION rather than a full comparison: two gold pieces
+ * are the same money whatever their art or where they came from.
+ *
+ * Everything else is keyed on the whole document minus the quantity — same
+ * type, name, art, system data and flags. That is strict on purpose: a torch
+ * with a dent in it, a torch inside a backpack and a plain torch are three
+ * different rows, and an item carrying its own Active Effects never merges at
+ * all. Over-merging silently destroys data; under-merging is a tidy-up.
+ *
+ * At a provider the key also carries the owner, so two characters' goods stay
+ * two rows.
+ */
+export function stackSignature(plain, { byOwner = false } = {}) {
+  if (!quantityOf(plain)) return null; // unstackable: weapons, armour
+  const owner = byOwner ? (storageFlagOf(plain)?.ownerUuid ?? "") : "";
+  if (isMoney(plain)) return `money|${owner}|${num(plain.system?.coppervalue, 1)}`;
+  if (plain.effects?.length) return null;
+
+  const wrapper = { system: structuredClone(plain.system ?? {}) };
+  setPath(wrapper, quantityOf(plain).path, 0);
+  // Sheet-computed, not identity: the system recalculates it on every render.
+  if ("totalvalue" in wrapper.system) wrapper.system.totalvalue = 0;
+  const flags = structuredClone(plain.flags ?? {});
+  if (flags[LIB_ID]) delete flags[LIB_ID][STORAGE_KEY];
+  // An arriving item has had keys REMOVED from its flags (the attribution, and
+  // a container pointer that would dangle), which leaves `{"acks-lib": {}}`
+  // where a row that never travelled simply has no such scope. Those are the
+  // same item, so an emptied scope must not read as a difference.
+  for (const [scope, value] of Object.entries(flags)) {
+    if (value && typeof value === "object" && !Object.keys(value).length) delete flags[scope];
+  }
+  return `${plain.type}|${plain.name}|${plain.img ?? ""}|${owner}|${canon(wrapper.system)}|${canon(flags)}`;
+}
+
+/**
+ * Fold arriving goods into rows that already exist, instead of adding a second
+ * "Gold" (or a second half-stack of torches).
+ *
+ * The system's own drop handler merges on document ID, which only works for
+ * items sharing an id lineage — anything that has been through a transfer has a
+ * fresh id, so the merge has to be by identity here.
  *
  * @returns {{creates: object[], targetUpdates: object[]}}
  */
-export function planMoneyMerge(creates, targetItems = [], { byOwner = false } = {}) {
+export function planStackMerge(creates, targetItems = [], { byOwner = false } = {}) {
   const slots = new Map();
-  for (const t of targetItems) {
-    if (!isMoney(t)) continue;
-    const key = moneyKey(t, byOwner);
-    if (!slots.has(key)) slots.set(key, { _id: t._id, quantity: num(t.system?.quantity), merged: false });
+  for (const target of targetItems) {
+    const key = stackSignature(target, { byOwner });
+    if (!key || slots.has(key)) continue;
+    const q = quantityOf(target);
+    slots.set(key, { _id: target._id, path: q.path, quantity: num(q.value), merged: false });
   }
 
   const outCreates = [];
   const firstCreate = new Map();
-  for (const c of creates ?? []) {
-    if (!isMoney(c)) {
-      outCreates.push(c);
+  for (const create of creates ?? []) {
+    const key = stackSignature(create, { byOwner });
+    if (!key) {
+      outCreates.push(create);
       continue;
     }
-    const key = moneyKey(c, byOwner);
-    const qty = num(c.system?.quantity);
+    const arriving = quantityOf(create);
     const slot = slots.get(key);
     if (slot) {
-      slot.quantity += qty;
+      slot.quantity += num(arriving.value);
       slot.merged = true;
       continue;
     }
-    // No row at the target yet: the first arrival becomes the row the rest of
-    // this batch merges into, so stashing two gold stacks still lands as one.
+    // No matching row at the target yet: the first arrival becomes the row the
+    // rest of this batch merges into, so stashing two gold stacks lands as one.
     const prior = firstCreate.get(key);
     if (prior) {
-      prior.system.quantity = num(prior.system.quantity) + qty;
+      setPath(prior, arriving.path, num(quantityOf(prior).value) + num(arriving.value));
       continue;
     }
-    firstCreate.set(key, c);
-    outCreates.push(c);
+    firstCreate.set(key, create);
+    outCreates.push(create);
   }
 
   const targetUpdates = [];
   for (const slot of slots.values()) {
-    if (slot.merged) targetUpdates.push({ _id: slot._id, "system.quantity": slot.quantity });
+    if (slot.merged) targetUpdates.push({ _id: slot._id, [slot.path]: slot.quantity });
   }
   return { creates: outCreates, targetUpdates };
 }

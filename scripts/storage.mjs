@@ -38,9 +38,10 @@ import {
   emptyMoneyDeletes,
   expandContainerClosure,
   groupByOwner,
-  planMoneyMerge,
+  planStackMerge,
   quantityOf,
   splitSpec,
+  stackSignature,
   storageFlagOf,
 } from "./storage-logic.mjs";
 import { isPhysical } from "./item-model.mjs";
@@ -54,9 +55,10 @@ export {
   emptyMoneyDeletes,
   expandContainerClosure,
   groupByOwner,
-  planMoneyMerge,
+  planStackMerge,
   quantityOf,
   splitSpec,
+  stackSignature,
   storageFlagOf,
   STORAGE_KEY,
 };
@@ -216,7 +218,7 @@ async function transfer(source, target, spec, { hook, stampOwner, preserveOwner 
     newId: () => foundry.utils.randomID(),
   });
 
-  const merged = planMoneyMerge(
+  const merged = planStackMerge(
     planned.creates,
     target.items.map((i) => i.toObject()),
     { byOwner: stampOwner },

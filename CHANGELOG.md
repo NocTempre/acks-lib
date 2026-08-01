@@ -22,10 +22,15 @@
     `quantitybank` never travels, and acks-equipment's `containedIn` pointers
     are remapped when a container moves with its contents and stripped when it
     does not. Partial stacks split; weapons and armour move whole.
-  - Coin merges by denomination (and by owner at a provider). The system's own
-    drop-merge matches on document ID, which only works for coin that shares an
-    id lineage — anything that has been through a transfer has a fresh id, so
-    without this a retrieved 20 gp becomes a second "Gold" row.
+  - Arriving stacks merge into matching rows instead of piling up beside them.
+    The system's own drop-merge matches on document ID, which only works for
+    items sharing an id lineage — anything that has been through a transfer has
+    a fresh id, so without this a retrieved 20 gp becomes a second "Gold" row
+    and half a stack of torches comes back as a second torch row. Coin is keyed
+    on denomination; everything else on the whole document minus the quantity,
+    which is strict on purpose (a torch in a backpack, a pricier torch, and an
+    item carrying its own effects each keep their own row) — over-merging
+    destroys data silently, under-merging is only a tidy-up.
   - `registerStorageCleanup()` handles the place being deleted, governed by the
     new world setting **storageDeletePolicy**: `return` (default) hands each
     owner their goods back in a container named after the place; `lose` is for

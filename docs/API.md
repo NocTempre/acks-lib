@@ -405,10 +405,19 @@ destroying them, and the source half failing triggers a compensating delete (wit
 a loud error if even that fails). Arrivals are normalised — nothing arrives
 equipped, the retired `quantitybank` never travels, and acks-equipment's
 `containedIn` pointers are remapped when a container travels with its contents
-and stripped when it does not. Coin merges by denomination, and by owner at a
-provider; the system's own merge matches on document ID, which only works for
-coin sharing an id lineage, so without this a retrieved 20 gp becomes a second
-"Gold" row. `spec` is `[{id, quantity?}]` — omit `quantity` for the whole stack.
+and stripped when it does not. `spec` is `[{id, quantity?}]` — omit `quantity`
+for the whole stack.
+
+Arriving stacks **merge into matching rows** rather than piling up beside them:
+the system's own merge matches on document ID, which only works for items
+sharing an id lineage, so without this a retrieved 20 gp becomes a second "Gold"
+row and half a stack of torches comes back as a second torch row. Coin is keyed
+on denomination (two gold pieces are the same money whatever their art); every
+other stackable is keyed on the whole document minus the quantity, which is
+strict on purpose — a torch in a backpack, a torch that costs more, and an item
+carrying its own Active Effects each keep their own row, because over-merging
+destroys data silently while under-merging is a tidy-up. At a provider the key
+also carries the owner, so two characters' goods stay two rows.
 
 **When the place is destroyed**, `registerStorageCleanup()` (installed at init)
 applies the world setting **`storageDeletePolicy`**: `return` (default) hands

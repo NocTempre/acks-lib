@@ -14,7 +14,7 @@ import {
   emptyMoneyDeletes,
   expandContainerClosure,
   groupByOwner,
-  planMoneyMerge,
+  planStackMerge,
   quantityOf,
   splitSpec,
 } from "../scripts/storage-logic.mjs";
@@ -681,24 +681,54 @@ t("buildTransferPayload: unknown ids and zero requests move nothing", () => {
   assert.equal(buildTransferPayload([gear("t", "Torch", 5)], [{ id: "t", quantity: 0 }], { newId: ids() }).creates.length, 0);
 });
 
-t("planMoneyMerge: folds into an existing row rather than adding a second Gold", () => {
-  const { creates, targetUpdates } = planMoneyMerge([gold("new", 20)], [gold("have", 50)]);
+t("planStackMerge: folds into an existing row rather than adding a second Gold", () => {
+  const { creates, targetUpdates } = planStackMerge([gold("new", 20)], [gold("have", 50)]);
   assert.equal(creates.length, 0);
   assert.deepEqual(targetUpdates, [{ _id: "have", "system.quantity": 70 }]);
 });
 
-t("planMoneyMerge: at a provider the key carries the owner, so two people's gold stays two rows", () => {
+t("planStackMerge: ordinary stackables merge too — split a stack, put it back, get one row", () => {
+  const { creates, targetUpdates } = planStackMerge([gear("moved", "Torch", 4)], [gear("kept", "Torch", 6)]);
+  assert.equal(creates.length, 0);
+  assert.deepEqual(targetUpdates, [{ _id: "kept", "system.quantity.value": 10 }]);
+});
+
+t("planStackMerge: only things that are genuinely the same merge", () => {
+  // Different name, different art, different system data, or living inside a
+  // container — each keeps its own row. Over-merging destroys data silently.
+  const kept = [gear("kept", "Torch", 6)];
+  const differs = (make) => planStackMerge([make], kept).creates.length;
+  assert.equal(differs(gear("m", "Lantern", 4)), 1, "different name");
+  assert.equal(differs({ ...gear("m", "Torch", 4), img: "other.webp" }), 1, "different art");
+  assert.equal(differs({ ...gear("m", "Torch", 4), system: { cost: 99, weight6: 1, quantity: { value: 4, max: 0 } } }), 1, "different cost");
+  assert.equal(differs(inside(gear("m", "Torch", 4), "pack")), 1, "inside a container");
+  assert.equal(differs({ ...gear("m", "Torch", 4), effects: [{ name: "Blessed" }] }), 1, "carries its own effects");
+  assert.equal(differs(sword("s")), 1, "unstackable never merges");
+  assert.equal(differs(gear("m", "Torch", 4)), 0, "identical apart from quantity");
+});
+
+t("planStackMerge: a transferred item merges with one that never travelled", () => {
+  // The regression this guards: an arrival has had keys DELETED from its flags
+  // (attribution, a container pointer that would dangle), leaving an empty
+  // scope where a plain row has none. Same item — it must still merge.
+  const arrival = { ...gear("moved", "Torch", 4), flags: { "acks-lib": {}, "acks-equipment": {} } };
+  const { creates, targetUpdates } = planStackMerge([arrival], [gear("kept", "Torch", 6)]);
+  assert.equal(creates.length, 0);
+  assert.deepEqual(targetUpdates, [{ _id: "kept", "system.quantity.value": 10 }]);
+});
+
+t("planStackMerge: at a provider the key carries the owner, so two people's gold stays two rows", () => {
   const stamp = (m, uuid) => ({ ...m, flags: { "acks-lib": { storage: { ownerUuid: uuid, ownerName: uuid } } } });
   const target = [stamp(gold("theirs", 10), "Actor.ally")];
-  const byOwner = planMoneyMerge([stamp(gold("mine", 5), "Actor.hero")], target, { byOwner: true });
+  const byOwner = planStackMerge([stamp(gold("mine", 5), "Actor.hero")], target, { byOwner: true });
   assert.equal(byOwner.creates.length, 1); // a new row for the hero
   assert.equal(byOwner.targetUpdates.length, 0);
-  const pooled = planMoneyMerge([stamp(gold("mine", 5), "Actor.ally")], target, { byOwner: true });
+  const pooled = planStackMerge([stamp(gold("mine", 5), "Actor.ally")], target, { byOwner: true });
   assert.deepEqual(pooled.targetUpdates, [{ _id: "theirs", "system.quantity": 15 }]);
 });
 
-t("planMoneyMerge: two arriving stacks of one denomination land as one row", () => {
-  const { creates } = planMoneyMerge([gold("a", 5), gold("b", 7), silver("c", 3)], []);
+t("planStackMerge: two arriving stacks of one denomination land as one row", () => {
+  const { creates } = planStackMerge([gold("a", 5), gold("b", 7), silver("c", 3)], []);
   assert.equal(creates.length, 2);
   assert.equal(creates.find((c) => c.name === "Gold").system.quantity, 12);
 });
